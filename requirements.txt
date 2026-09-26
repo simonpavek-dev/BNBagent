@@ -1,0 +1,5 @@
+anthropic>=0.125
+requests
+python-dotenv
+pyyaml
+urllib3<2

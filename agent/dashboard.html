@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent apartmány</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+<style>
+  :root {
+    --bg: #f6f5f2; --panel: #ffffff; --panel-2: #f1efea; --text: #1d1c1a; --muted: #6b6862;
+    --line: #e4e1da; --accent: #2f6b4f; --accent-soft: #e3efe8; --warn: #b4531f; --warn-soft: #fbeadf;
+    --info: #3b5ba5; --info-soft: #e5ebf7; --bad: #b3261e; --bad-soft: #f9e2e0; --shadow: 0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151514; --panel: #1f1f1d; --panel-2: #282825; --text: #ecebe7; --muted: #a09d96;
+      --line: #34332f; --accent: #6cc59a; --accent-soft: #1f3a2d; --warn: #f0a070; --warn-soft: #3d2a1d;
+      --info: #8fb0f0; --info-soft: #1f2a42; --bad: #f28b82; --bad-soft: #402422; --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 20px 16px 32px; }
+  header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+  h1 { font-size: 22px; margin: 0; letter-spacing: -.01em; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 999px;
+    font-size: 13px; font-weight: 600; background: var(--panel); border: 1px solid var(--line); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+  .pill.ok .dot { background: #2eaa6b; box-shadow: 0 0 0 0 rgba(46,170,107,.5); animation: pulse 2s infinite; }
+  .pill.off .dot { background: var(--bad); }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(46,170,107,.45); } 70% { box-shadow: 0 0 0 8px rgba(46,170,107,0); } 100% { box-shadow: 0 0 0 0 rgba(46,170,107,0); } }
+  .cinnost { color: var(--muted); font-size: 14px; flex: 1; min-width: 200px; }
+  .cinnost b { color: var(--text); font-weight: 600; }
+  .rezim { font-size: 13px; padding: 5px 12px; border-radius: 999px; font-weight: 600; }
+  .rezim.navrh { background: var(--info-soft); color: var(--info); }
+  .rezim.ostre { background: var(--accent-soft); color: var(--accent); }
+
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; box-shadow: var(--shadow); }
+  .stat .k { font-size: 12.5px; color: var(--muted); }
+  .stat .v { font-size: 26px; font-weight: 650; letter-spacing: -.02em; margin-top: 2px; }
+  .stat .s { font-size: 12.5px; color: var(--muted); }
+
+  .grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+  .card > h2 { font-size: 15px; margin: 0; padding: 14px 18px; border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: center; }
+  .card > h2 small { color: var(--muted); font-weight: 500; }
+  .col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+
+  .navrh { padding: 16px 18px; border-bottom: 1px solid var(--line); }
+  .navrh:last-child { border-bottom: 0; }
+  .meta { font-size: 12.5px; color: var(--muted); margin-bottom: 8px; }
+  .bubble { border-radius: 12px; padding: 10px 12px; white-space: pre-wrap; word-break: break-word; font-size: 14px; }
+  .bubble.host { background: var(--panel-2); margin-bottom: 8px; }
+  .bubble.agent { background: var(--accent-soft); }
+  .label { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 8px 0 4px; font-weight: 600; }
+  .actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  button { font: inherit; font-size: 14px; border-radius: 10px; padding: 8px 14px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--panel); color: var(--text); }
+  button:hover { background: var(--panel-2); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button.primary:hover { filter: brightness(1.08); }
+  button:disabled { opacity: .5; cursor: default; }
+  textarea { width: 100%; font: inherit; font-size: 14px; border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 12px; background: var(--panel); color: var(--text); resize: vertical; }
+  .empty { padding: 22px 18px; color: var(--muted); font-size: 14px; }
+
+  .feed { max-height: 640px; overflow: auto; }
+  .ev { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--line); }
+  .ev:last-child { border-bottom: 0; }
+  .ev .d { width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; background: var(--muted); }
+  .ev.odpoved .d { background: var(--info); } .ev.eskalace .d { background: var(--warn); }
+  .ev.odeslano .d { background: #2eaa6b; } .ev.chyba .d { background: var(--bad); }
+  .ev.zmena .d { background: #8a5cc2; } .ev.hodnoceni .d { background: #d4a017; }
+  .ev .t { font-weight: 600; font-size: 14px; }
+  .ev .h { font-size: 12.5px; color: var(--muted); }
+  .ev .x { font-size: 13.5px; margin-top: 4px; white-space: pre-wrap; word-break: break-word; }
+  .ev .p { font-size: 13px; color: var(--muted); margin-top: 3px; font-style: italic; }
+  .ev .c { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+  .chat { position: sticky; top: 16px; display: flex; flex-direction: column; height: calc(100vh - 32px); max-height: 860px; }
+  .msgs { flex: 1; overflow: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+  .m { max-width: 88%; padding: 10px 13px; border-radius: 14px; white-space: pre-wrap; word-break: break-word; font-size: 14px; }
+  .m.hostitel { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+  .m.agent { align-self: flex-start; background: var(--panel-2); border-bottom-left-radius: 4px; }
+  .m.pise { color: var(--muted); font-style: italic; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 18px 10px; }
+  .chip { font-size: 12.5px; padding: 5px 10px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); cursor: pointer; }
+  .compose { display: flex; gap: 8px; padding: 12px 18px 16px; border-top: 1px solid var(--line); }
+  .compose textarea { min-height: 44px; max-height: 160px; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg);
+    padding: 10px 16px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; white-space: pre-wrap; }
+  .toast.show { opacity: 1; }
+
+  @media (max-width: 980px) {
+    .grid { grid-template-columns: minmax(0, 1fr); }
+    .chat { position: static; height: 620px; }
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🤖 Agent apartmány</h1>
+    <span class="pill" id="stav"><span class="dot"></span><span id="stav-text">Načítám…</span></span>
+    <span class="rezim" id="rezim"></span>
+    <div class="cinnost" id="cinnost"></div>
+  </header>
+
+  <section class="stats">
+    <div class="stat"><div class="k">Zprávy hostů dnes</div><div class="v" id="s-zprav">–</div><div class="s" id="s-zprav-det"></div></div>
+    <div class="stat"><div class="k">Odesláno hostům dnes</div><div class="v" id="s-odeslano">–</div><div class="s">automaticky i po schválení</div></div>
+    <div class="stat"><div class="k">Čeká na tebe</div><div class="v" id="s-ceka">–</div><div class="s">návrhy ke schválení</div></div>
+    <div class="stat"><div class="k">Náklady Claude dnes</div><div class="v" id="s-naklady">–</div><div class="s" id="s-naklady-det"></div></div>
+  </section>
+
+  <div class="grid">
+    <div class="col">
+      <div class="card">
+        <h2>Čeká na schválení <small id="navrhy-pocet"></small></h2>
+        <div id="navrhy"><div class="empty">Načítám…</div></div>
+      </div>
+      <div class="card">
+        <h2>Aktivita agenta <small>posledních 80 událostí</small></h2>
+        <div class="feed" id="aktivita"><div class="empty">Načítám…</div></div>
+      </div>
+    </div>
+
+    <div class="card chat">
+      <h2>Chat s agentem <small>změny a dotazy</small></h2>
+      <div class="msgs" id="msgs"></div>
+      <div class="chips" id="chips">
+        <span class="chip">Co jsi dnes dělal?</span>
+        <span class="chip">Kolik jsi tento měsíc stál?</span>
+        <span class="chip">Jaké informace ti chybí u bytů?</span>
+        <span class="chip">V Pistachiu je nové heslo na Wi-Fi: …</span>
+      </div>
+      <form class="compose" id="form">
+        <textarea id="vstup" rows="2" placeholder="Napiš agentovi… (Enter odešle, Shift+Enter nový řádek)"></textarea>
+        <button class="primary" id="poslat">Poslat</button>
+      </form>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const api = async (url, body) => {
+  const opt = body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json", "X-Agent-Panel": "1" }, body: JSON.stringify(body) };
+  const r = await fetch(url, opt);
+  return r.json();
+};
+const toast = (t) => { const e = $("toast"); e.textContent = t; e.classList.add("show"); clearTimeout(e._t); e._t = setTimeout(() => e.classList.remove("show"), 3500); };
+const cas = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso), dnes = new Date();
+  const hm = d.toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
+  return d.toDateString() === dnes.toDateString() ? hm : `${d.getDate()}. ${d.getMonth() + 1}. ${hm}`;
+};
+const usd = (x) => "$" + (x || 0).toFixed(2);
+
+async function nactiStav() {
+  try {
+    const s = await api("/api/stav");
+    $("stav").className = "pill " + (s.bezi ? "ok" : "off");
+    $("stav-text").textContent = s.bezi ? "Běží" : "Neběží";
+    $("rezim").className = "rezim " + s.rezim;
+    $("rezim").textContent = s.rezim === "ostre" ? "Ostrý režim – odpovídá sám" : "Režim návrhů – posílá až po schválení";
+    const c = $("cinnost"); c.textContent = "";
+    if (s.bezi) { c.append(el("b", null, s.cinnost || "Čekám na nové zprávy hostů")); }
+    else { c.append(el("b", null, "Agent neběží. ")); c.append("Spusť ho dvojklikem na spustit-agenta.command."); }
+    if (s.posledni_kontrola) c.append(` · poslední kontrola ${cas(s.posledni_kontrola)} (každé ${s.interval} min)`);
+    $("s-zprav").textContent = s.dnes.zprav;
+    $("s-zprav-det").textContent = `${s.dnes.odpovedet || 0} odpovědí · ${s.dnes.eskalovat || 0} předáno tobě · ${s.dnes.neodpovidat || 0} bez odpovědi`;
+    $("s-odeslano").textContent = s.dnes.odeslano;
+    $("s-ceka").textContent = s.cekajici_navrhy;
+    $("s-naklady").textContent = usd(s.naklady.dnes);
+    $("s-naklady-det").textContent = `7 dní ${usd(s.naklady["7_dni"])} · měsíc ${usd(s.naklady.tento_mesic)}`;
+  } catch (e) { $("stav").className = "pill off"; $("stav-text").textContent = "Panel nedostupný"; }
+}
+
+let upravuji = null;
+async function nactiNavrhy() {
+  if (upravuji) return;  // nepřepisovat rozepsanou úpravu
+  const list = await api("/api/navrhy");
+  $("navrhy-pocet").textContent = list.length ? `${list.length}` : "";
+  const box = $("navrhy"); box.textContent = "";
+  if (!list.length) { box.append(el("div", "empty", "Nic nečeká. 🎉")); return; }
+  for (const n of list) {
+    const d = el("div", "navrh");
+    d.append(el("div", "meta", `${n.hlavicka} · ${cas(n.cas)}`));
+    if (n.zprava_hosta) { d.append(el("div", "label", "Host napsal")); d.append(el("div", "bubble host", n.zprava_hosta)); }
+    d.append(el("div", "label", `Návrh odpovědi (${n.jazyk || "?"})`));
+    d.append(el("div", "bubble agent", n.text));
+    const a = el("div", "actions");
+    const kdy = n.odeslat_po ? new Date(n.odeslat_po).toLocaleString("cs-CZ", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+    if (n.stav === "schvaleno") {
+      d.append(el("div", "meta", `🕙 Schváleno – odešle se ${kdy}`));
+      const bZr = el("button", null, "❌ Zrušit odeslání");
+      bZr.onclick = async () => { const r = await api(`/api/navrh/${n.id}/zahodit`, {}); toast(r.zprava || r.chyba); obnov(); };
+      a.append(bZr); d.append(a); box.append(d); continue;
+    }
+    const bOk = el("button", "primary", kdy ? `✅ Schválit – odešle se ${kdy}` : "✅ Odeslat"), bUp = el("button", null, "✏️ Upravit"), bNo = el("button", null, "❌ Neposílat");
+    bOk.onclick = async () => { bOk.disabled = true; const r = await api(`/api/navrh/${n.id}/odeslat`, {}); toast(r.zprava || r.chyba); obnov(); };
+    bNo.onclick = async () => { const r = await api(`/api/navrh/${n.id}/zahodit`, {}); toast(r.zprava || r.chyba); obnov(); };
+    bUp.onclick = () => {
+      upravuji = n.id; a.textContent = "";
+      const t = el("textarea"); t.rows = 3; t.placeholder = "Napiš česky, co má host dostat – přeložím to do jeho jazyka a doplním podpis.";
+      const bGo = el("button", "primary", "Připravit zprávu"), bZpet = el("button", null, "Zrušit");
+      bGo.onclick = async () => { if (!t.value.trim()) return; bGo.disabled = true; bGo.textContent = "Připravuji…";
+        const r = await api(`/api/navrh/${n.id}/upravit`, { text: t.value }); upravuji = null; toast(r.zprava || r.chyba); obnov(); };
+      bZpet.onclick = () => { upravuji = null; obnov(); };
+      d.append(t); a.append(bGo, bZpet); t.focus();
+    };
+    a.append(bOk, bUp, bNo); d.append(a); box.append(d);
+  }
+}
+
+async function nactiAktivitu() {
+  const list = await api("/api/aktivita");
+  const box = $("aktivita"); box.textContent = "";
+  if (!list.length) { box.append(el("div", "empty", "Zatím žádná aktivita.")); return; }
+  for (const a of list) {
+    const r = el("div", "ev " + a.druh);
+    r.append(el("div", "d"));
+    const b = el("div");
+    b.append(el("div", "t", a.titulek));
+    if (a.hlavicka) b.append(el("div", "h", a.hlavicka));
+    if (a.text) b.append(el("div", "x clamp", a.text));
+    if (a.poznamka) b.append(el("div", "p", a.poznamka));
+    r.append(b, el("div", "c", cas(a.cas)));
+    box.append(r);
+  }
+}
+
+function zobrazZpravu(kdo, text) {
+  const m = el("div", "m " + kdo, text); $("msgs").append(m); $("msgs").scrollTop = $("msgs").scrollHeight; return m;
+}
+async function nactiChat() {
+  const h = await api("/api/chat");
+  $("msgs").textContent = "";
+  if (!h.length) zobrazZpravu("agent", "Ahoj! Napiš mi, co mám změnit (třeba nové heslo na Wi-Fi, pravidla pozdního check-outu) nebo se zeptej, co jsem dělal.");
+  for (const z of h) zobrazZpravu(z.kdo, z.text);
+}
+async function poslat(text) {
+  text = text.trim(); if (!text) return;
+  $("vstup").value = ""; $("poslat").disabled = true;
+  zobrazZpravu("hostitel", text);
+  const p = zobrazZpravu("agent pise", "Pracuji na tom…");
+  try { const r = await api("/api/chat", { text }); p.remove(); zobrazZpravu("agent", r.odpoved || ("Chyba: " + r.chyba)); }
+  catch (e) { p.remove(); zobrazZpravu("agent", "Chyba spojení s panelem."); }
+  $("poslat").disabled = false; obnov();
+}
+$("form").onsubmit = (e) => { e.preventDefault(); poslat($("vstup").value); };
+$("vstup").onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); poslat($("vstup").value); } };
+document.querySelectorAll(".chip").forEach((c) => c.onclick = () => {
+  if (c.textContent.endsWith("…")) { $("vstup").value = c.textContent.replace("…", ""); $("vstup").focus(); } else poslat(c.textContent);
+});
+
+function obnov() { nactiStav(); nactiNavrhy(); nactiAktivitu(); }
+obnov(); nactiChat();
+setInterval(obnov, 5000);
+</script>
+</body>
+</html>

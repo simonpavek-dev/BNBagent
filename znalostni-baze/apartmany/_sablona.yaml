@@ -1,0 +1,69 @@
+# ============================================================
+#  ZNALOSTNÍ BÁZE APARTMÁNU
+#  Čím víc toho vyplníš, tím víc dotazů agent vyřeší sám.
+#  Co necháš prázdné (""), to agent nebude vědět a pošle dotaz tobě.
+#  Text piš klidně česky – agent ho hostům přeloží.
+# ============================================================
+
+smoobu_id: ""            # ID apartmánu ve Smoobu (zjistíš příkazem: python -m agent apartmany)
+nazev: ""                # např. "Apartmán Vinohrady 2+kk"
+adresa: ""               # přesná adresa včetně čísla patra/bytu
+patro_vytah: ""          # např. "3. patro, výtah je"
+
+prijezd:
+  check_in_od: "15:00"
+  check_in_do: "22:00"
+  pozdni_prijezd: ""     # co dělat, když host přijede po 22:00 (povoleno? poplatek?)
+  drivejsi_check_in: ""  # pravidla, např. "zdarma od 13:00, pokud je byt uklizený – jinak eskalovat"
+  uschova_zavazadel: ""  # jde nechat kufry před check-inem / po check-outu?
+  # krok za krokem: jak se dostat do domu, kde je schránka na klíče, jak otevřít dveře
+  postup: ""
+  kod_vchod: ""          # stálý kód od domu (pokud je)
+  keybox_kod: ""         # kód keyboxu – mění se u každé rezervace (ke kódu se přičte 1010)
+  keybox_kod_plati_pro_rezervaci: ""   # ID rezervace, pro kterou kód výše platil
+  kody_sdelit_nejdrive_dni_pred_prijezdem: 1   # dřív kódy agent neprozradí
+
+odjezd:
+  check_out_do: "10:00"
+  pozdni_check_out: ""   # pravidla/cena, nebo nech prázdné = vždy eskalovat
+  postup: ""             # co udělat při odchodu (klíče, odpadky, nádobí, okna)
+
+doprava:
+  mhd: ""                # nejbližší zastávka, linky, jak dlouho do centra
+  z_letiste: ""          # pokud se liší od obecného návodu
+  z_nadrazi: ""
+  parkovani: ""          # kde parkovat, cena, zóny, garáž
+
+wifi:
+  sit: ""
+  heslo: ""
+
+vybaveni:
+  loznice: ""            # počet a typy postelí, max. počet osob
+  kuchyn: ""             # kávovar (jaký, kapsle?), myčka, trouba, základní potraviny
+  koupelna: ""           # ručníky, fén, kosmetika
+  pracka_susicka: ""
+  topeni_klimatizace: "" # jak se ovládá
+  detska_postylka: ""    # je k dispozici? zdarma?
+  ostatni: ""            # žehlička, TV/Netflix, balkon…
+
+pravidla:
+  koureni: "Zakázáno"
+  zvirata: ""            # povolena? za kolik?
+  vecirky: "Zakázány"
+  nocni_klid: "22:00–7:00"
+  odpadky: ""            # kde jsou popelnice, třídění
+
+okoli:
+  obchod: ""             # nejbližší supermarket, otevírací doba
+  restaurace: ""
+  lekarna: ""
+  zajimavosti: ""
+
+# Časté otázky a přesné odpovědi – agent je použije doslova
+caste_dotazy:
+  - otazka: ""
+    odpoved: ""
+
+# Speciální pokyny pro agenta k tomuto bytu
+poznamky_pro_agenta: ""

@@ -1,0 +1,18 @@
+# klíče a hesla
+.env
+
+# databáze, log a historie konverzací s hosty
+data/*
+!data/.gitkeep
+
+# poznámky k hostům (osobní údaje)
+poznamky-k-hostum.yaml
+
+# skutečné byty obsahují adresy, kódy a Wi-Fi – na GitHub jen šablona a vymyšlený příklad
+znalostni-baze/apartmany/*
+!znalostni-baze/apartmany/_sablona.yaml
+!znalostni-baze/apartmany/_priklad.yaml
+
+.venv/
+__pycache__/
+.DS_Store

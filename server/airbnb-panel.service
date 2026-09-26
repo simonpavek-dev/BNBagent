@@ -1,0 +1,13 @@
+[Unit]
+Description=Ovládací panel AI agenta (jen localhost:8765, zvenku přes SSH tunel)
+After=network-online.target
+
+[Service]
+User=agent
+WorkingDirectory=/opt/airbnb-agent
+ExecStart=/opt/airbnb-agent/.venv/bin/python -W ignore -m agent dashboard
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,64 @@
+# Vyplněný VYMYŠLENÝ příklad – slouží jen k vyzkoušení agenta (python -m agent zkouska _priklad "...").
+smoobu_id: ""
+nazev: "Apartmán Vinohrady 2+kk"
+adresa: "Slezská 123/45, Praha 2 – Vinohrady, byt č. 12"
+patro_vytah: "3. patro, výtah je"
+
+prijezd:
+  check_in_od: "15:00"
+  check_in_do: "22:00"
+  pozdni_prijezd: "Bez problému, check-in je samoobslužný, platí se jen noční klid."
+  drivejsi_check_in: "Nelze garantovat. Pokud se host ptá, eskalovat – ověřím podle úklidu."
+  uschova_zavazadel: "Není možná."
+  postup: >
+    1) Zadejte kód na zvonkovém panelu u hlavních dveří a stiskněte #.
+    2) Výtahem do 3. patra, byt č. 12 vpravo.
+    3) Byt má zámek s klávesnicí – zadejte kód bytu a stiskněte zámek.
+  kod_vchod: "4821"
+  kod_byt: "7719"
+  kody_sdelit_nejdrive_dni_pred_prijezdem: 1
+
+odjezd:
+  check_out_do: "10:00"
+  pozdni_check_out: "Do 12:00 za 300 Kč, pokud ten den nepřijíždí další host – vždy eskalovat k ověření."
+  postup: "Použité ručníky nechte ve vaně, odpadky vyneste do popelnic ve dvoře, dveře se zamknou samy."
+
+doprava:
+  mhd: "Tramvaj 11 a 13, zastávka Vinohradská vodárna (2 min pěšky). Metro A Jiřího z Poděbrad 6 min pěšky."
+  z_letiste: ""
+  z_nadrazi: "Z Hlavního nádraží tramvají 11 (5 zastávek) nebo pěšky 20 min."
+  parkovani: "Modrá zóna – jen pro rezidenty. Doporučujeme garáž Vinohradský pivovar, cca 400 Kč/den."
+
+wifi:
+  sit: "Vinohrady12"
+  heslo: "praha2024"
+
+vybaveni:
+  loznice: "Manželská postel 180×200 + rozkládací gauč pro 2. Max. 4 osoby."
+  kuchyn: "Myčka, indukce, trouba, kávovar Nespresso (pár kapslí zdarma), čaj, sůl, pepř, olej."
+  koupelna: "Ručníky, fén, šampon a sprchový gel."
+  pracka_susicka: "Pračka se sušičkou v koupelně, prací kapsle pod dřezem."
+  topeni_klimatizace: "Radiátory s termostatickými hlavicemi. Klimatizace není, v létě je k dispozici ventilátor ve skříni."
+  detska_postylka: "Ano, zdarma na vyžádání – je potřeba mi dát vědět předem (eskalovat, ať ji připravím)."
+  ostatni: "Smart TV s Netflixem (přihlášeno), žehlička a prkno ve skříni."
+
+pravidla:
+  koureni: "Zakázáno v celém bytě i na balkoně."
+  zvirata: "Nepovolena."
+  vecirky: "Zakázány."
+  nocni_klid: "22:00–7:00"
+  odpadky: "Popelnice ve dvoře, třídíme plast/papír/sklo."
+
+okoli:
+  obchod: "Albert na náměstí Jiřího z Poděbrad, denně 7–22."
+  restaurace: "Café Sladkovský, Mozaika (burgery), Pastva Bistro."
+  lekarna: "Lékárna na Vinohradské 50, Po–Pá 8–19."
+  zajimavosti: "Riegrovy sady 10 min pěšky, Žižkovská věž 12 min."
+
+caste_dotazy:
+  - otazka: "Je v bytě fén?"
+    odpoved: "Ano, v koupelně v šuplíku."
+  - otazka: "Můžeme si nechat poslat balík?"
+    odpoved: "Ne, bohužel nemáme kde balíky přebírat."
+
+poznamky_pro_agenta: "Sousedé jsou citliví na hluk – při zmínce o oslavě zdvořile připomenout noční klid."

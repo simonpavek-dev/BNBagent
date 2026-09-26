@@ -1,0 +1,14 @@
+[Unit]
+Description=AI agent pro apartmány (Smoobu → Claude → Telegram)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=agent
+WorkingDirectory=/opt/airbnb-agent
+ExecStart=/opt/airbnb-agent/.venv/bin/python -W ignore -m agent spustit
+Restart=always
+RestartSec=60
+
+[Install]
+WantedBy=multi-user.target
