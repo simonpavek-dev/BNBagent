@@ -4,7 +4,7 @@ from datetime import timedelta
 
 import yaml
 
-from . import config, kody, kontext, mozek, oznameni, znalosti
+from . import config, kody, kontext, mozek, oznameni, uklidy, znalosti
 from .databaze import Databaze
 from .smoobu import Smoobu
 
@@ -98,8 +98,9 @@ def _vyrid_jednu(smoobu, db, r, zpravy, zprava):
     except Exception:
         log.exception("Nepodařilo se dopočítat kód keyboxu pro rezervaci %s", r.get("id"))
         kod = None  # agent pak kód neprozradí a případně eskaluje
+    doplnek = "\n\n".join(x for x in (popis_kodu(kod), uklidy.popis_pro_zpravu(r)) if x)
     vysledek = mozek.rozhodni_o_zprave(
-        znalosti.obecne_text(), apartman_text, kontext.sestav(r, zpravy, popis_kodu(kod))
+        znalosti.obecne_text(), apartman_text, kontext.sestav(r, zpravy, doplnek)
     )
     rozhodnuti = vysledek["rozhodnuti"]
     db.zapis(r["id"], "rozhodnuti", dict(vysledek, hlavicka=_hlavicka(r), zprava_hosta=zprava.get("message", "")))
@@ -232,12 +233,16 @@ def priprav_prijezdy(smoobu, db, den=None):
                             "už byl den příjezdu, a kvůli dnešnímu datu ji nezamítej.")
             v = mozek.priprav_instrukce_k_prijezdu(
                 znalosti.obecne_text(), apartman_text, kontext.sestav(r, zpravy, doplnek))
+        except uklidy.UklidyChyba as e:  # výpadek aplikace úklidů hlásí hlavní smyčka jednou denně
+            log.warning("Instrukce k příjezdu pro %s počkají, kód nejde ověřit: %s", r.get("id"), e)
+            continue
         except Exception as e:
             log.exception("Instrukce k příjezdu pro %s selhaly", r.get("id"))
             oznameni.posli(f"⚠️ Nepodařilo se připravit instrukce k příjezdu – pošli je prosím sám.\n{_hlavicka(r)}\nChyba: {e}")
             continue
         db.uloz_nastaveni(f"prijezd_{r['id']}", "hotovo")
-        db.zapis(r["id"], "instrukce_prijezd", dict(v, hlavicka=_hlavicka(r), kod=kod))
+        db.zapis(r["id"], "instrukce_prijezd", dict(v, hlavicka=_hlavicka(r), kod=kod,
+                                                    smoobu_id=str((r.get("apartment") or {}).get("id"))))
         if not v["poslat"]:
             oznameni.posli(f"ℹ️ Instrukce k příjezdu neposílám: {v['duvod']}\n{_hlavicka(r)}")
             continue
@@ -277,6 +282,10 @@ def navrhni_hodnoceni(smoobu, db):
         db.uloz_nastaveni("cinnost", f"Připravuji hodnocení hosta: {_hlavicka(r)}")
         _, apartman_text = znalosti.apartman_podle_smoobu_id((r.get("apartment") or {}).get("id"))
         poznamka = poznamky.get(str(r["id"]), "")
+        try:
+            poznamka = "\n".join(x for x in (poznamka, uklidy.poznamky_k_pobytu(r["id"])) if x)
+        except uklidy.UklidyChyba as e:
+            log.warning("%s", e)
         doplnek = "POZNÁMKY HOSTITELE / ÚKLIDU K TOMUTO POBYTU:\n" + (poznamka or "(žádné)")
         try:
             v = mozek.navrhni_hodnoceni(

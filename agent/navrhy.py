@@ -1,7 +1,7 @@
 """Akce s návrhy odpovědí – společné pro Telegram i dashboard."""
 from datetime import datetime
 
-from . import mozek, oznameni
+from . import mozek, oznameni, uklidy
 
 
 def kdy(odeslat_po):
@@ -55,6 +55,10 @@ def odeslat(smoobu, db, navrh, zdroj, kdo=""):
             proc = "host napsal další zprávu" if zpravy[-1].get("type") == 1 else "hostovi už někdo odpověděl"
             return False, (f"⚠️ Neodesláno – mezitím {proc}.\n{navrh['hlavicka']}\n"
                            "Agent na novou zprávu hosta připraví nový návrh sám.")
+    problem_s_kodem = uklidy.kod_stale_plati(db, navrh)
+    if problem_s_kodem:
+        oznameni.odeber_tlacitka(navrh["tg_message_id"])
+        return False, f"⚠️ Neodesláno – {problem_s_kodem}\n{navrh['hlavicka']}"
     smoobu.send_message(navrh["reservation_id"], navrh["text"])
     db.uprav_navrh(navrh["id"], stav="odeslano")
     db.zapis(navrh["reservation_id"], f"odeslano_z_{zdroj}", navrh["text"])

@@ -17,7 +17,7 @@ import sys
 import time
 from datetime import datetime, timedelta
 
-from . import config, kontext, mozek, navrhy, oznameni, prace, telegram_ovladani, znalosti
+from . import config, kontext, mozek, navrhy, oznameni, prace, telegram_ovladani, uklidy, znalosti
 
 
 def nastav_log():
@@ -112,6 +112,13 @@ def spustit(_args):
                 prace.priprav_prijezdy(smoobu, db)
                 if ted.hour >= config.PRIJEZD_HODINA:
                     prace.priprav_prijezdy(smoobu, db, kontext.dnes() + timedelta(days=1))
+                try:  # aplikace úklidů: změny kódů, problémy, je byt k příjezdu uklizený?
+                    uklidy.zkontroluj(smoobu, db)
+                except uklidy.UklidyChyba as e:
+                    log.warning("%s", e)
+                    if db.nastaveni("uklidy_chyba_den") != ted.date().isoformat():
+                        oznameni.posli(f"⚠️ {e} – kódy z ní teď nejde ověřit, instrukce s kódem neodešlu.")
+                        db.uloz_nastaveni("uklidy_chyba_den", ted.date().isoformat())
                 navrhy.odesli_naplanovane(smoobu, db)
                 posledni_kk = db.nastaveni("kontrola_kalendare")
                 if not posledni_kk or ted - datetime.fromisoformat(posledni_kk) > timedelta(hours=6):

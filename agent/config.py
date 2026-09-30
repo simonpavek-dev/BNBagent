@@ -32,4 +32,9 @@ HODNOCENI_HODINA = int(os.getenv("HODNOCENI_HODINA", "11"))  # kdy denně připr
 PRIJEZD_HODINA = int(os.getenv("PRIJEZD_HODINA", "18"))
 PRIJEZD_ODESLAT_HODINA = int(os.getenv("PRIJEZD_ODESLAT_HODINA", "10"))
 
+# Aplikace úklidů (kolbl.goldenpathai.com) – prázdné = napojení vypnuté, kódy se berou ze znalostní báze
+UKLIDY_API_URL = os.getenv("UKLIDY_API_URL", "").strip()
+UKLIDY_API_KEY = os.getenv("UKLIDY_API_KEY", "").strip()
+UKLID_KONTROLA_HODINA = int(os.getenv("UKLID_KONTROLA_HODINA", "14"))  # v den příjezdu: je už uklizeno?
+
 TIMEZONE = "Europe/Prague"

@@ -5,7 +5,7 @@ V YAML apartmánu je uložen jeden známý kód (keybox_kod) a rezervace, pro kt
 (keybox_kod_plati_pro_rezervaci). Kód pro jinou rezervaci se dopočítá podle toho,
 o kolik rezervací (seřazených podle příjezdu) je dál nebo blíž.
 """
-from . import kontext
+from . import kontext, uklidy
 
 KROK = 1010  # o kolik se kód zvýší u každé další rezervace
 
@@ -23,6 +23,8 @@ def posun(kod, kroku):
 
 def kod_pro_rezervaci(smoobu, apartman, rezervace):
     """Vrátí kód keyboxu pro danou rezervaci, nebo None, když ho nejde spolehlivě určit."""
+    if uklidy.zapnuto():  # aktuální kód potvrzený uklízečkou po posledním úklidu
+        return uklidy.kod_bytu((rezervace.get("apartment") or {}).get("id"))
     prijezd_info = (apartman or {}).get("prijezd") or {}
     zakladni_kod = str(prijezd_info.get("keybox_kod") or "").strip()
     zakladni_rez = str(prijezd_info.get("keybox_kod_plati_pro_rezervaci") or "").strip()
