@@ -1,5 +1,6 @@
 """Mapy: vyhledání místa a trasy pěšky přes OpenStreetMap + odkazy na Google Maps (zdarma, bez klíče)."""
 import json
+import re
 import subprocess
 import time
 from urllib.parse import urlencode
@@ -32,7 +33,20 @@ NASTROJ_TRASA = {
 }
 
 
-def _najdi(misto):
+def _varianty(misto):
+    """Nominatim nenajde „Billa, Vodičkova 710/31, Praha 1“ – zkusí se i bez názvu podniku a bez čísla popisného."""
+    casti = [c.strip() for c in misto.split(",") if c.strip()]
+    varianty = [misto]
+    if len(casti) > 2:
+        varianty.append(", ".join(casti[1:]))  # bez názvu podniku na začátku
+    for v in list(varianty):
+        bez_cp = re.sub(r"\b\d+/(\d+\w?)\b", r"\1", v)  # „710/31“ → „31“ (číslo orientační)
+        if bez_cp != v:
+            varianty.append(bez_cp)
+    return list(dict.fromkeys(varianty))
+
+
+def _hledej(dotaz):
     # Nominatim povoluje max. 1 dotaz za sekundu
     cekat = 1.1 - (time.time() - _posledni_dotaz[0])
     if cekat > 0:
@@ -40,14 +54,19 @@ def _najdi(misto):
     _posledni_dotaz[0] = time.time()
     resp = requests.get(
         "https://nominatim.openstreetmap.org/search",
-        params={"q": misto, "format": "json", "limit": 1, "countrycodes": "cz", "accept-language": "cs"},
+        params={"q": dotaz, "format": "json", "limit": 1, "countrycodes": "cz", "accept-language": "cs"},
         headers=HEADERS, timeout=20,
     )
     resp.raise_for_status()
-    vysledky = resp.json()
-    if not vysledky:
-        raise ValueError(f"Místo nenalezeno: {misto}")
-    return float(vysledky[0]["lat"]), float(vysledky[0]["lon"]), vysledky[0].get("display_name", misto)
+    return resp.json()
+
+
+def _najdi(misto):
+    for dotaz in _varianty(misto):
+        vysledky = _hledej(dotaz)
+        if vysledky:
+            return float(vysledky[0]["lat"]), float(vysledky[0]["lon"]), vysledky[0].get("display_name", misto)
+    raise ValueError(f"Místo nenalezeno: {misto} – zkus zadat jen ulici a číslo, nebo jen název místa a město")
 
 
 def _google_odkaz(odkud, kam, rezim):
