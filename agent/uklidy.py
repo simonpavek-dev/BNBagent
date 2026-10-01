@@ -1,15 +1,19 @@
-"""Napojení na naši aplikaci úklidů (kolbl.goldenpathai.com) – kódy keyboxů, stav úklidu, poznámky uklízeček.
+"""Napojení na naši aplikaci úklidů (uklid.kolbl-apartments.cz) – kódy keyboxů, stav úklidu, poznámky uklízeček.
 
 Specifikace API: docs/api-uklidy.md. Když v .env chybí UKLIDY_API_URL / UKLIDY_API_KEY, je napojení vypnuté
 a agent bere kódy ze znalostní báze jako dřív.
+
+V aplikaci je víc bytů než ve Smoobu. Agent pracuje jen s těmi, které spáruje se svou znalostní bází:
+podle `smoobu_id` z API, nebo podle názvu `uklidy_nazev` v souboru bytu (např. "Školská 3+1").
 """
 import json
 import logging
+import unicodedata
 from datetime import datetime, time as cas, timedelta
 
 import requests
 
-from . import config, kontext, oznameni
+from . import config, kontext, oznameni, znalosti
 
 log = logging.getLogger("agent")
 
@@ -36,9 +40,26 @@ def _get(cesta, params=None):
     return resp.json()
 
 
+def _klic(nazev):
+    """„Školská 3+1“ a „skolska 3+1 “ jsou totéž."""
+    return " ".join(unicodedata.normalize("NFKD", str(nazev or "")).encode("ascii", "ignore").decode().lower().split())
+
+
+def _nase_byty():
+    """{název bytu v aplikaci úklidů: smoobu_id} podle znalostní báze (pole uklidy_nazev)."""
+    return {_klic(d.get("uklidy_nazev")): str(d.get("smoobu_id")).strip()
+            for _, d in znalosti.vsechny_apartmany() if d.get("uklidy_nazev") and d.get("smoobu_id")}
+
+
 def byty():
-    """{smoobu_id: byt} z aplikace úklidů."""
-    return {str(b.get("smoobu_id")): b for b in _get("/apartments").get("apartments", []) if b.get("smoobu_id")}
+    """{smoobu_id: byt} – jen naše byty ze Smoobu, ostatní byty v aplikaci úklidů se ignorují."""
+    nase = _nase_byty()
+    out = {}
+    for b in _get("/apartments").get("apartments", []):
+        smoobu_id = str(b.get("smoobu_id") or nase.get(_klic(b.get("name"))) or "")
+        if smoobu_id:
+            out[smoobu_id] = dict(b, smoobu_id=smoobu_id, name=str(b.get("name") or "").strip())
+    return out
 
 
 def kod_bytu(smoobu_id):
@@ -47,8 +68,16 @@ def kod_bytu(smoobu_id):
     return kod or None
 
 
-def uklidy(**params):
-    return [u for u in _get("/cleanings", params).get("cleanings", []) if u.get("status") != "cancelled"]
+def uklidy(smoobu_id=None, **params):
+    """Úklidy našich bytů (s doplněným smoobu_id); úklidy ostatních bytů v aplikaci se zahodí."""
+    podle_id = {str(b.get("id")): sid for sid, b in byty().items()}
+    out = []
+    for u in _get("/cleanings", params).get("cleanings", []):
+        sid = podle_id.get(str(u.get("apartment_id")))
+        if not sid or u.get("status") == "cancelled" or (smoobu_id and sid != str(smoobu_id)):
+            continue
+        out.append(dict(u, smoobu_id=sid))
+    return out
 
 
 def _cas(hodnota):
@@ -89,14 +118,19 @@ def popis_pro_zpravu(rezervace):
             f"rozhoduje hostitel, hostovi nic neslibuj): {popis}")
 
 
-def poznamky_k_pobytu(reservation_id):
-    """Poznámky a problémy z úklidu po odjezdu hosta – pro návrh hodnocení."""
+def poznamky_k_pobytu(rezervace):
+    """Poznámky a problémy z úklidu po odjezdu hosta – pro návrh hodnocení.
+    Úklid se k pobytu přiřadí podle ID rezervace ze Smoobu, jinak podle bytu, data odjezdu a jména hosta."""
     if not zapnuto():
         return ""
     od = (kontext.dnes() - timedelta(days=5)).isoformat()
     radky = []
     for u in uklidy(date_from=od, date_to=kontext.dnes().isoformat()):
-        if str(u.get("departed_reservation_id")) != str(reservation_id):
+        stejna_rez = str(u.get("departed_reservation_id") or "") == str(rezervace.get("id"))
+        stejny_pobyt = (u.get("smoobu_id") == str((rezervace.get("apartment") or {}).get("id"))
+                        and u.get("date") == str(rezervace.get("departure"))[:10]
+                        and _klic(u.get("departed_guest")) == _klic(rezervace.get("guest-name")))
+        if not (stejna_rez or stejny_pobyt):
             continue
         if u.get("notes"):
             radky.append(f"Úklid ({u.get('cleaner') or '?'}): {u['notes']}")

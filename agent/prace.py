@@ -283,7 +283,7 @@ def navrhni_hodnoceni(smoobu, db):
         _, apartman_text = znalosti.apartman_podle_smoobu_id((r.get("apartment") or {}).get("id"))
         poznamka = poznamky.get(str(r["id"]), "")
         try:
-            poznamka = "\n".join(x for x in (poznamka, uklidy.poznamky_k_pobytu(r["id"])) if x)
+            poznamka = "\n".join(x for x in (poznamka, uklidy.poznamky_k_pobytu(r)) if x)
         except uklidy.UklidyChyba as e:
             log.warning("%s", e)
         doplnek = "POZNÁMKY HOSTITELE / ÚKLIDU K TOMUTO POBYTU:\n" + (poznamka or "(žádné)")

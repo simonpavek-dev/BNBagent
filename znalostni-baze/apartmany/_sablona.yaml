@@ -7,6 +7,7 @@
 
 smoobu_id: ""            # ID apartmánu ve Smoobu (zjistíš příkazem: python -m agent apartmany)
 nazev: ""                # např. "Apartmán Vinohrady 2+kk"
+uklidy_nazev: ""         # název bytu v aplikaci úklidů (uklid.kolbl-apartments.cz), prázdné = nespárovat
 adresa: ""               # přesná adresa včetně čísla patra/bytu
 patro_vytah: ""          # např. "3. patro, výtah je"
 
