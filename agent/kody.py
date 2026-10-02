@@ -23,9 +23,8 @@ def posun(kod, kroku):
 
 def kod_pro_rezervaci(smoobu, apartman, rezervace):
     """Vrátí kód keyboxu pro danou rezervaci, nebo None, když ho nejde spolehlivě určit."""
-    if uklidy.zapnuto() and uklidy.rozpor_v_kodu((rezervace.get("apartment") or {}).get("id"),
-                                                 kontext._datum(rezervace.get("arrival"))):
-        return None  # aplikace úklidů má u novějšího úklidu jiný kód – radši nic neposílat a zeptat se hostitele
+    if uklidy.zapnuto():  # poslední kód z aplikace úklidů (nebo znalostní báze, pokud je novější)
+        return uklidy.aktualni_kod((rezervace.get("apartment") or {}).get("id"))
     prijezd_info = (apartman or {}).get("prijezd") or {}
     zakladni_kod = str(prijezd_info.get("keybox_kod") or "").strip()
     zakladni_rez = str(prijezd_info.get("keybox_kod_plati_pro_rezervaci") or "").strip()

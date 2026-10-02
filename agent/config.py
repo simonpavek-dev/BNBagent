@@ -36,6 +36,7 @@ PRIJEZD_ODESLAT_HODINA = int(os.getenv("PRIJEZD_ODESLAT_HODINA", "10"))
 UKLIDY_URL = os.getenv("UKLIDY_URL", "").strip()
 UKLIDY_LOGIN = os.getenv("UKLIDY_LOGIN", "").strip()
 UKLIDY_HESLO = os.getenv("UKLIDY_HESLO", "").strip()
+UKLIDY_INTERVAL_MINUT = int(os.getenv("UKLIDY_INTERVAL_MINUT", "15"))  # jak často číst aplikaci úklidů
 UKLID_KONTROLA_HODINA = int(os.getenv("UKLID_KONTROLA_HODINA", "14"))  # v den příjezdu: je už uklizeno?
 
 TIMEZONE = "Europe/Prague"

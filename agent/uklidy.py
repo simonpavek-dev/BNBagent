@@ -6,8 +6,9 @@ Aplikace nemá API – agent se přihlásí vlastním účtem (UKLIDY_LOGIN / UK
 V aplikaci je víc bytů než ve Smoobu. Agent pracuje jen s těmi, které spáruje se znalostní bází podle názvu
 `uklidy_nazev` v souboru bytu (např. "Školská 3+1"). Ostatní byty ignoruje.
 
-Kódy: platný kód je `keybox_kod` ve znalostní bázi. Když je v aplikaci u novějšího úklidu zapsaný jiný kód,
-agent kód hostům neposílá a zeptá se hostitele (`keybox_kod_overeno` = den, kdy hostitel kód naposledy ověřil).
+Kódy: aplikace je hlavní zdroj. Agent ji čte každých UKLIDY_INTERVAL_MINUT minut; nový kód zapsaný u úklidu převezme
+(uloží do databáze, ohlásí ve skupině) a drží ho, dokud se neobjeví jiný. `keybox_kod` v souboru bytu platí jen tehdy,
+když je jeho `keybox_kod_overeno` novější než poslední zápis v aplikaci.
 """
 import html
 import json
@@ -20,6 +21,7 @@ from datetime import datetime, time as cas
 import requests
 
 from . import config, kontext, oznameni, znalosti
+from .databaze import Databaze
 
 log = logging.getLogger("agent")
 _session = [None]
@@ -95,8 +97,8 @@ def _nase_byty():
 
 
 def pobyty():
-    """Pobyty našich bytů (nejvýš minutu staré): smoobu_id, byt, odjezd, datum úklidu, kód, uklizeno, host."""
-    if _cache["pobyty"] is not None and time.time() - _cache["cas"] < 60:
+    """Pobyty našich bytů (obnovují se každých UKLIDY_INTERVAL_MINUT): smoobu_id, byt, odjezd, datum úklidu, kód, uklizeno, host."""
+    if _cache["pobyty"] is not None and time.time() - _cache["cas"] < config.UKLIDY_INTERVAL_MINUT * 60:
         return _cache["pobyty"]
     nase = _nase_byty()
     out = []
@@ -122,20 +124,52 @@ def _apartman(smoobu_id):
     return next((d for _, d in znalosti.vsechny_apartmany() if str(d.get("smoobu_id")).strip() == str(smoobu_id)), {})
 
 
-def rozpor_v_kodu(smoobu_id, den=None):
-    """Je v aplikaci u úklidu (nejpozději v daný den) zapsaný jiný kód než ve znalostní bázi, a to později,
-    než ho hostitel naposledy ověřil? Vrací popis rozporu, nebo None."""
-    prijezd = (_apartman(smoobu_id).get("prijezd") or {})
-    kod = str(prijezd.get("keybox_kod") or "").strip()
-    overeno = str(prijezd.get("keybox_kod_overeno") or "").strip()
-    den = (den or kontext.dnes()).isoformat()
-    zapsane = [p for p in pobyty() if p["smoobu_id"] == str(smoobu_id) and p["kod"] and (p["datum"] or "") <= den]
-    if not zapsane or not kod:
-        return None
-    posledni = zapsane[-1]
-    if posledni["kod"] == kod or (overeno and posledni["datum"] <= overeno):
-        return None
-    return f"v aplikaci úklidů je u úklidu {posledni['datum']} zapsaný kód {posledni['kod']}, ve znalostní bázi {kod}"
+def _kod_ze_znalosti(smoobu_id):
+    """(kód, den ověření) ze souboru bytu – platí, dokud v aplikaci nepřibude novější kód."""
+    prijezd = _apartman(smoobu_id).get("prijezd") or {}
+    return str(prijezd.get("keybox_kod") or "").strip(), str(prijezd.get("keybox_kod_overeno") or "").strip()
+
+
+def _posledni_z_aplikace(smoobu_id):
+    """(kód, datum úklidu) – poslední kód zapsaný v aplikaci u úklidu do dneška, nebo (None, "")."""
+    dnes = kontext.dnes().isoformat()
+    zapsane = [p for p in pobyty() if p["smoobu_id"] == str(smoobu_id) and p["kod"] and (p["datum"] or "") <= dnes]
+    return (zapsane[-1]["kod"], zapsane[-1]["datum"]) if zapsane else (None, "")
+
+
+def _ulozeny(db, smoobu_id):
+    """(kód, datum úklidu) naposledy převzatý z aplikace a uložený v databázi agenta."""
+    return db.nastaveni(f"kod_{smoobu_id}", ""), db.nastaveni(f"kod_{smoobu_id}_datum", "")
+
+
+def _nejnovejsi(kandidati):
+    """kandidati = [(datum, priorita, kód)] – vyhrává novější datum, při stejném datu vyšší priorita."""
+    kandidati = [(d or "", pr, k) for d, pr, k in kandidati if k]
+    return max(kandidati)[2] if kandidati else None
+
+
+def aktualni_kod(smoobu_id, db=None):
+    """Platný kód keyboxu: nejnovější z (soubor bytu + den ověření, kód převzatý z aplikace a uložený v databázi,
+    kód právě zapsaný v aplikaci). Když aplikace nejde přečíst, platí poslední známý kód."""
+    db = db or Databaze()
+    kandidati = [_kandidat_znalosti(smoobu_id), _kandidat_db(db, smoobu_id)]
+    if zapnuto():
+        try:
+            kod, datum = _posledni_z_aplikace(smoobu_id)
+            kandidati.append((datum, 2, kod))
+        except UklidyChyba as e:
+            log.warning("%s – používám poslední známý kód", e)
+    return _nejnovejsi(kandidati)
+
+
+def _kandidat_znalosti(smoobu_id):
+    kod, overeno = _kod_ze_znalosti(smoobu_id)
+    return overeno, 0, kod
+
+
+def _kandidat_db(db, smoobu_id):
+    kod, datum = _ulozeny(db, smoobu_id)
+    return datum, 1, kod
 
 
 def kod_stale_plati(db, navrh):
@@ -145,17 +179,11 @@ def kod_stale_plati(db, navrh):
     stary, smoobu_id = instrukce.get("kod"), instrukce.get("smoobu_id")
     if not stary or stary not in navrh["text"] or not smoobu_id:
         return None
-    aktualni = str((_apartman(smoobu_id).get("prijezd") or {}).get("keybox_kod") or "").strip()
+    aktualni = aktualni_kod(smoobu_id, db)
     if aktualni and aktualni != stary:
         zneplatni_instrukce(db, smoobu_id)
         return f"Kód keyboxu se mezitím změnil ({stary} → {aktualni}), instrukce připravím znovu."
-    if not zapnuto():
-        return None
-    try:
-        rozpor = rozpor_v_kodu(smoobu_id)
-    except UklidyChyba as e:
-        return f"Nepodařilo se ověřit kód v aplikaci úklidů ({e}), proto zprávu s kódem {stary} neodesílám."
-    return f"Kód nesedí – {rozpor}. Ověřte, který platí." if rozpor else None
+    return None
 
 
 def _instrukce(db, reservation_id):
@@ -166,21 +194,19 @@ def _instrukce(db, reservation_id):
 
 
 def zneplatni_instrukce(db, smoobu_id):
-    """Čekající/naplánované instrukce s kódem, který už neplatí, se neodešlou – agent je připraví znovu."""
-    aktualni = str((_apartman(smoobu_id).get("prijezd") or {}).get("keybox_kod") or "").strip()
+    """Čekající/naplánované instrukce se starým kódem se neodešlou – agent je připraví znovu s platným kódem."""
+    aktualni = aktualni_kod(smoobu_id, db)
     for navrh_id, rid, text, tg in db.conn.execute(
             "SELECT id, reservation_id, text, tg_message_id FROM navrhy WHERE stav IN ('ceka', 'schvaleno')").fetchall():
         instrukce = _instrukce(db, rid)
         stary = instrukce.get("kod")
-        if str(instrukce.get("smoobu_id")) != str(smoobu_id) or not stary or stary not in text:
-            continue
-        if stary == aktualni and not (zapnuto() and rozpor_v_kodu(smoobu_id)):
+        if str(instrukce.get("smoobu_id")) != str(smoobu_id) or not stary or stary == aktualni or stary not in text:
             continue
         db.uprav_navrh(navrh_id, stav="zastarale")
         db.uloz_nastaveni(f"prijezd_{rid}", "")  # v příštím cyklu se připraví znovu
         oznameni.odeber_tlacitka(tg)
-        oznameni.posli(f"♻️ Instrukce k příjezdu (rez. {rid}) obsahovaly kód {stary}, který teď nemusí platit – "
-                       "neodešlu je. Až bude kód jasný, připravím nové ke schválení.")
+        oznameni.posli(f"♻️ Instrukce k příjezdu (rez. {rid}) obsahovaly starý kód {stary} – neodešlu je, "
+                       f"připravím nové s kódem {aktualni} ke schválení.")
 
 
 # ---------------------------------------------------------------- stav úklidu
@@ -215,42 +241,32 @@ def popis_pro_zpravu(rezervace):
 # ---------------------------------------------------------------- hlídání (volá se v každém cyklu agenta)
 
 def zkontroluj(smoobu, db):
-    """Po každém odkliknutém úklidu zkontroluje kód, hlídá rozpory v kódech a v den příjezdu, že je uklizeno."""
+    """Převezme nové kódy zapsané v aplikaci (data se obnovují každých UKLIDY_INTERVAL_MINUT)
+    a v den příjezdu hlídá, že je uklizeno."""
     if not zapnuto():
         return
-    dnes = kontext.dnes().isoformat()
-    prvni_beh = db.nastaveni("uklidy_inicializovano") != "ano"
-    for p in pobyty():
-        if not p["uklizeno"] or db.nastaveni(f"uklid_{p['id']}") == "zkontrolovano":
-            continue
-        if not prvni_beh and p["datum"] >= dnes:  # starší úklidy z doby před zapnutím napojení nehlásit
-            _po_uklidu(db, p)
-        db.uloz_nastaveni(f"uklid_{p['id']}", "zkontrolovano")
-    db.uloz_nastaveni("uklidy_inicializovano", "ano")
     for smoobu_id in {p["smoobu_id"] for p in pobyty()}:
-        _hlidej_rozpor(db, smoobu_id)
+        _prevezmi_kod(db, smoobu_id)
     _hlidej_prijezdy(smoobu, db)
 
 
-def _po_uklidu(db, p):
-    kod = str((_apartman(p["smoobu_id"]).get("prijezd") or {}).get("keybox_kod") or "").strip()
-    if p["kod"] and p["kod"] == kod:
-        db.zapis("", "uklid", {"byt": p["byt"], "datum": p["datum"], "kod": "sedí"})
-    elif not p["kod"]:
-        oznameni.posli(f"🧹 {p['byt']}: úklid {p['datum']} je odkliknutý, ale v aplikaci u něj není zapsaný kód. "
-                       f"Ověřte prosím, že na keyboxu je {kod or '(kód ve znalostní bázi chybí)'}.")
-    # jiný kód hlásí _hlidej_rozpor
-
-
-def _hlidej_rozpor(db, smoobu_id):
-    rozpor = rozpor_v_kodu(smoobu_id)
-    if not rozpor or db.nastaveni(f"rozpor_kodu_{smoobu_id}") == rozpor:
+def _prevezmi_kod(db, smoobu_id):
+    kod, datum = _posledni_z_aplikace(smoobu_id)
+    ulozeny_kod, ulozeny_datum = _ulozeny(db, smoobu_id)
+    if not kod or (kod, datum) == (ulozeny_kod, ulozeny_datum) or datum < ulozeny_datum:
         return
-    nazev = _apartman(smoobu_id).get("nazev") or smoobu_id
-    oznameni.posli(f"🔑❗ {nazev}: {rozpor}. Dokud nebude jasné, který kód platí, agent ho hostům neposílá. "
-                   "Napište mi správný kód (nebo ho opravte v aplikaci úklidů).")
-    db.uloz_nastaveni(f"rozpor_kodu_{smoobu_id}", rozpor)
-    zneplatni_instrukce(db, smoobu_id)
+    _, overeno = _kod_ze_znalosti(smoobu_id)
+    if overeno and datum < overeno:
+        return  # starší zápis v aplikaci, než kdy hostitel kód naposledy ověřil
+    predtim = _nejnovejsi([_kandidat_znalosti(smoobu_id), _kandidat_db(db, smoobu_id)])
+    db.uloz_nastaveni(f"kod_{smoobu_id}", kod)
+    db.uloz_nastaveni(f"kod_{smoobu_id}_datum", datum)
+    db.zapis("", "kod_z_aplikace", {"smoobu_id": smoobu_id, "kod": kod, "datum_uklidu": datum, "predtim": predtim})
+    if kod != predtim:
+        nazev = _apartman(smoobu_id).get("nazev") or smoobu_id
+        oznameni.posli(f"🔑 {nazev}: v aplikaci úklidů je u úklidu {datum} nový kód keyboxu {kod} "
+                       f"(dosud {predtim or '?'}). Agent od teď posílá hostům {kod}.")
+        zneplatni_instrukce(db, smoobu_id)
 
 
 def _hlidej_prijezdy(smoobu, db):
