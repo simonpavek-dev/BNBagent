@@ -1,24 +1,29 @@
-"""Napojení na naši aplikaci úklidů (uklid.kolbl-apartments.cz) – kódy keyboxů, stav úklidu, poznámky uklízeček.
+"""Napojení na naši aplikaci úklidů (uklid.kolbl-apartments.cz): stav úklidů a kódy keyboxů zapsané u úklidů.
 
-Specifikace API: docs/api-uklidy.md. Když v .env chybí UKLIDY_API_URL / UKLIDY_API_KEY, je napojení vypnuté
-a agent bere kódy ze znalostní báze jako dřív.
+Aplikace nemá API – agent se přihlásí vlastním účtem (UKLIDY_LOGIN / UKLIDY_HESLO v .env) a čte stránku /uklidy
+(Next.js v ní posílá data o pobytech jako JSON). Když údaje v .env chybí, je napojení vypnuté.
 
-V aplikaci je víc bytů než ve Smoobu. Agent pracuje jen s těmi, které spáruje se svou znalostní bází:
-podle `smoobu_id` z API, nebo podle názvu `uklidy_nazev` v souboru bytu (např. "Školská 3+1").
+V aplikaci je víc bytů než ve Smoobu. Agent pracuje jen s těmi, které spáruje se znalostní bází podle názvu
+`uklidy_nazev` v souboru bytu (např. "Školská 3+1"). Ostatní byty ignoruje.
+
+Kódy: platný kód je `keybox_kod` ve znalostní bázi. Když je v aplikaci u novějšího úklidu zapsaný jiný kód,
+agent kód hostům neposílá a zeptá se hostitele (`keybox_kod_overeno` = den, kdy hostitel kód naposledy ověřil).
 """
+import html
 import json
 import logging
+import re
+import time
 import unicodedata
-from datetime import datetime, time as cas, timedelta
+from datetime import datetime, time as cas
 
 import requests
 
 from . import config, kontext, oznameni, znalosti
 
 log = logging.getLogger("agent")
-
-TYP_PROBLEMU = {"damage": "škoda", "missing_item": "něco chybí", "lost_and_found": "host něco zapomněl",
-                "dirty": "velký nepořádek", "other": "jiné"}
+_session = [None]
+_cache = {"cas": 0.0, "pobyty": None}
 
 
 class UklidyChyba(Exception):
@@ -26,18 +31,7 @@ class UklidyChyba(Exception):
 
 
 def zapnuto():
-    return bool(config.UKLIDY_API_URL and config.UKLIDY_API_KEY)
-
-
-def _get(cesta, params=None):
-    try:
-        resp = requests.get(config.UKLIDY_API_URL.rstrip("/") + "/api/v1" + cesta, params=params or {},
-                            headers={"Authorization": f"Bearer {config.UKLIDY_API_KEY}"}, timeout=20)
-    except requests.RequestException as e:
-        raise UklidyChyba(f"Aplikace úklidů nedostupná ({type(e).__name__})") from None
-    if resp.status_code >= 400:
-        raise UklidyChyba(f"Aplikace úklidů: {cesta} → {resp.status_code} {resp.text[:200]}")
-    return resp.json()
+    return bool(config.UKLIDY_URL and config.UKLIDY_LOGIN and config.UKLIDY_HESLO)
 
 
 def _klic(nazev):
@@ -45,65 +39,165 @@ def _klic(nazev):
     return " ".join(unicodedata.normalize("NFKD", str(nazev or "")).encode("ascii", "ignore").decode().lower().split())
 
 
-def _nase_byty():
-    """{název bytu v aplikaci úklidů: smoobu_id} podle znalostní báze (pole uklidy_nazev)."""
-    return {_klic(d.get("uklidy_nazev")): str(d.get("smoobu_id")).strip()
-            for _, d in znalosti.vsechny_apartmany() if d.get("uklidy_nazev") and d.get("smoobu_id")}
+# ---------------------------------------------------------------- čtení aplikace
+
+def _url(cesta):
+    return config.UKLIDY_URL.rstrip("/") + cesta
 
 
-def byty():
-    """{smoobu_id: byt} – jen naše byty ze Smoobu, ostatní byty v aplikaci úklidů se ignorují."""
-    nase = _nase_byty()
-    out = {}
-    for b in _get("/apartments").get("apartments", []):
-        smoobu_id = str(b.get("smoobu_id") or nase.get(_klic(b.get("name"))) or "")
-        if smoobu_id:
-            out[smoobu_id] = dict(b, smoobu_id=smoobu_id, name=str(b.get("name") or "").strip())
-    return out
-
-
-def kod_bytu(smoobu_id):
-    """Aktuální kód keyboxu podle aplikace úklidů, nebo None (byt tam není / nemá kód)."""
-    kod = str((byty().get(str(smoobu_id)) or {}).get("keybox_code") or "").strip()
-    return kod or None
-
-
-def uklidy(smoobu_id=None, **params):
-    """Úklidy našich bytů (s doplněným smoobu_id); úklidy ostatních bytů v aplikaci se zahodí."""
-    podle_id = {str(b.get("id")): sid for sid, b in byty().items()}
-    out = []
-    for u in _get("/cleanings", params).get("cleanings", []):
-        sid = podle_id.get(str(u.get("apartment_id")))
-        if not sid or u.get("status") == "cancelled" or (smoobu_id and sid != str(smoobu_id)):
-            continue
-        out.append(dict(u, smoobu_id=sid))
-    return out
-
-
-def _cas(hodnota):
+def _prihlas(s):
     try:
-        return datetime.fromisoformat(str(hodnota)).replace(tzinfo=None)
-    except ValueError:
-        return None
+        r = s.get(_url("/login"), timeout=20)
+        form = re.search(r"<form.*?</form>", r.text, re.S)
+        if not form:
+            raise UklidyChyba("Aplikace úklidů: přihlašovací formulář nenalezen (změnila se aplikace?)")
+        data = {html.unescape(n): html.unescape(v or "") for n, v in
+                re.findall(r'<input type="hidden" name="([^"]+)"(?: value="([^"]*)")?', form.group(0))}
+        data.update(email=config.UKLIDY_LOGIN, password=config.UKLIDY_HESLO)
+        r = s.post(_url("/login"), files={k: (None, v) for k, v in data.items()}, allow_redirects=False, timeout=20)
+    except requests.RequestException as e:
+        raise UklidyChyba(f"Aplikace úklidů nedostupná ({type(e).__name__})") from None
+    if r.status_code not in (302, 303):
+        chyba = re.search(r'error\\?":\\?"([^"\\]+)', r.text)
+        raise UklidyChyba(f"Aplikace úklidů: přihlášení se nepovedlo ({chyba.group(1) if chyba else r.status_code})")
 
+
+def _stahni():
+    """Všechny pobyty ze stránky /uklidy: [{"stay": {...}, "apartment": {...}}, ...]."""
+    s = _session[0] or requests.Session()
+    _session[0] = s
+    try:
+        r = s.get(_url("/uklidy"), timeout=30)
+        if "/login" in r.url:
+            _prihlas(s)
+            r = s.get(_url("/uklidy"), timeout=30)
+    except requests.RequestException as e:
+        raise UklidyChyba(f"Aplikace úklidů nedostupná ({type(e).__name__})") from None
+    if "/login" in r.url or r.status_code >= 400:
+        raise UklidyChyba(f"Aplikace úklidů: stránku /uklidy nejde otevřít ({r.status_code})")
+    casti = re.findall(r'self\.__next_f\.push\(\[1,"(.*?)"\]\)', r.text, re.S)
+    data = "".join(json.loads('"' + c + '"') for c in casti)
+    dekoder, polozky = json.JSONDecoder(), []
+    for m in re.finditer(r'\{"stay":', data):
+        try:
+            polozky.append(dekoder.raw_decode(data, m.start())[0])
+        except ValueError:
+            pass
+    if not polozky:
+        raise UklidyChyba("Aplikace úklidů: na stránce /uklidy nejsou žádné pobyty (změnila se aplikace?)")
+    return polozky
+
+
+def _nase_byty():
+    """{název bytu v aplikaci úklidů: soubor bytu ve znalostní bázi} (pole uklidy_nazev)."""
+    return {_klic(d.get("uklidy_nazev")): d for _, d in znalosti.vsechny_apartmany()
+            if d.get("uklidy_nazev") and d.get("smoobu_id")}
+
+
+def pobyty():
+    """Pobyty našich bytů (nejvýš minutu staré): smoobu_id, byt, odjezd, datum úklidu, kód, uklizeno, host."""
+    if _cache["pobyty"] is not None and time.time() - _cache["cas"] < 60:
+        return _cache["pobyty"]
+    nase = _nase_byty()
+    out = []
+    for x in _stahni():
+        stay, byt = x.get("stay") or {}, x.get("apartment") or {}
+        apartman = nase.get(_klic(byt.get("name")))
+        if not apartman:
+            continue  # cizí byt, který nemáme ve Smoobu
+        out.append({
+            "smoobu_id": str(apartman["smoobu_id"]).strip(), "byt": str(byt.get("name") or "").strip(),
+            "id": stay.get("id"), "odjezd": stay.get("checkOut"), "datum": stay.get("cleaningDate") or stay.get("checkOut"),
+            "kod": str(stay.get("codes") or "").strip() or None, "uklizeno": stay.get("uklidStatus") == "uklizeno",
+            "host": stay.get("guestName"),
+        })
+    out.sort(key=lambda p: (p["datum"] or "", p["id"] or ""))
+    _cache.update(cas=time.time(), pobyty=out)
+    return out
+
+
+# ---------------------------------------------------------------- kódy
+
+def _apartman(smoobu_id):
+    return next((d for _, d in znalosti.vsechny_apartmany() if str(d.get("smoobu_id")).strip() == str(smoobu_id)), {})
+
+
+def rozpor_v_kodu(smoobu_id, den=None):
+    """Je v aplikaci u úklidu (nejpozději v daný den) zapsaný jiný kód než ve znalostní bázi, a to později,
+    než ho hostitel naposledy ověřil? Vrací popis rozporu, nebo None."""
+    prijezd = (_apartman(smoobu_id).get("prijezd") or {})
+    kod = str(prijezd.get("keybox_kod") or "").strip()
+    overeno = str(prijezd.get("keybox_kod_overeno") or "").strip()
+    den = (den or kontext.dnes()).isoformat()
+    zapsane = [p for p in pobyty() if p["smoobu_id"] == str(smoobu_id) and p["kod"] and (p["datum"] or "") <= den]
+    if not zapsane or not kod:
+        return None
+    posledni = zapsane[-1]
+    if posledni["kod"] == kod or (overeno and posledni["datum"] <= overeno):
+        return None
+    return f"v aplikaci úklidů je u úklidu {posledni['datum']} zapsaný kód {posledni['kod']}, ve znalostní bázi {kod}"
+
+
+def kod_stale_plati(db, navrh):
+    """Pojistka těsně před odesláním návrhu s kódem keyboxu. Vrací None, když je vše v pořádku,
+    jinak důvod, proč návrh neodeslat."""
+    instrukce = _instrukce(db, navrh["reservation_id"])
+    stary, smoobu_id = instrukce.get("kod"), instrukce.get("smoobu_id")
+    if not stary or stary not in navrh["text"] or not smoobu_id:
+        return None
+    aktualni = str((_apartman(smoobu_id).get("prijezd") or {}).get("keybox_kod") or "").strip()
+    if aktualni and aktualni != stary:
+        zneplatni_instrukce(db, smoobu_id)
+        return f"Kód keyboxu se mezitím změnil ({stary} → {aktualni}), instrukce připravím znovu."
+    if not zapnuto():
+        return None
+    try:
+        rozpor = rozpor_v_kodu(smoobu_id)
+    except UklidyChyba as e:
+        return f"Nepodařilo se ověřit kód v aplikaci úklidů ({e}), proto zprávu s kódem {stary} neodesílám."
+    return f"Kód nesedí – {rozpor}. Ověřte, který platí." if rozpor else None
+
+
+def _instrukce(db, reservation_id):
+    """Poslední připravené instrukce k příjezdu dané rezervace (kód a byt, pro který byly), nebo {}."""
+    radek = db.conn.execute("SELECT detail FROM udalosti WHERE akce = 'instrukce_prijezd' AND reservation_id = ? "
+                            "ORDER BY id DESC LIMIT 1", (str(reservation_id),)).fetchone()
+    return json.loads(radek[0]) if radek else {}
+
+
+def zneplatni_instrukce(db, smoobu_id):
+    """Čekající/naplánované instrukce s kódem, který už neplatí, se neodešlou – agent je připraví znovu."""
+    aktualni = str((_apartman(smoobu_id).get("prijezd") or {}).get("keybox_kod") or "").strip()
+    for navrh_id, rid, text, tg in db.conn.execute(
+            "SELECT id, reservation_id, text, tg_message_id FROM navrhy WHERE stav IN ('ceka', 'schvaleno')").fetchall():
+        instrukce = _instrukce(db, rid)
+        stary = instrukce.get("kod")
+        if str(instrukce.get("smoobu_id")) != str(smoobu_id) or not stary or stary not in text:
+            continue
+        if stary == aktualni and not (zapnuto() and rozpor_v_kodu(smoobu_id)):
+            continue
+        db.uprav_navrh(navrh_id, stav="zastarale")
+        db.uloz_nastaveni(f"prijezd_{rid}", "")  # v příštím cyklu se připraví znovu
+        oznameni.odeber_tlacitka(tg)
+        oznameni.posli(f"♻️ Instrukce k příjezdu (rez. {rid}) obsahovaly kód {stary}, který teď nemusí platit – "
+                       "neodešlu je. Až bude kód jasný, připravím nové ke schválení.")
+
+
+# ---------------------------------------------------------------- stav úklidu
 
 def stav_pro_prijezd(smoobu_id, den):
-    """Stav úklidu bytu k příjezdu v daný den: (uklizeno, popis pro agenta/hostitele)."""
-    seznam = sorted(uklidy(smoobu_id=smoobu_id, date_from=(den - timedelta(days=7)).isoformat(),
-                           date_to=den.isoformat()), key=lambda u: (u.get("date") or "", u.get("id") or 0))
-    if not seznam:
-        return False, "V aplikaci úklidů není na posledních 7 dní žádný úklid tohoto bytu."
-    posledni = seznam[-1]
-    if posledni.get("status") == "done":
-        hotovo = _cas(posledni.get("finished_at"))
-        kdy = f"{hotovo:%d. %m. v %H:%M}" if hotovo else posledni.get("date")
-        return True, f"Byt je uklizený (úklid dokončen {kdy}, {posledni.get('cleaner') or 'uklízečka neuvedena'})."
-    nazvy = {"planned": "naplánovaný", "in_progress": "právě probíhá", "problem": "uklízečka nahlásila problém"}
-    return False, f"Úklid {posledni.get('date')}: {nazvy.get(posledni.get('status'), posledni.get('status'))}."
+    """Stav posledního úklidu bytu před příjezdem v daný den: (uklizeno, popis)."""
+    pred = [p for p in pobyty() if p["smoobu_id"] == str(smoobu_id) and (p["datum"] or "") <= den.isoformat()]
+    if not pred:
+        return False, "V aplikaci úklidů není žádný úklid tohoto bytu před příjezdem."
+    p = pred[-1]
+    if p["uklizeno"]:
+        return True, f"Byt je uklizený (úklid {p['datum']} je v aplikaci odkliknutý)."
+    return False, f"Úklid {p['datum']} zatím v aplikaci není odkliknutý jako uklizený."
 
 
 def popis_pro_zpravu(rezervace):
-    """Doplněk ke kontextu zprávy hosta (hlavně kvůli dřívějšímu check-inu). Při chybě API prázdný."""
+    """Doplněk ke kontextu zprávy hosta (hlavně kvůli dřívějšímu check-inu). Při chybě aplikace prázdný."""
     if not zapnuto():
         return ""
     prijezd = kontext._datum(rezervace.get("arrival"))
@@ -118,119 +212,56 @@ def popis_pro_zpravu(rezervace):
             f"rozhoduje hostitel, hostovi nic neslibuj): {popis}")
 
 
-def poznamky_k_pobytu(rezervace):
-    """Poznámky a problémy z úklidu po odjezdu hosta – pro návrh hodnocení.
-    Úklid se k pobytu přiřadí podle ID rezervace ze Smoobu, jinak podle bytu, data odjezdu a jména hosta."""
-    if not zapnuto():
-        return ""
-    od = (kontext.dnes() - timedelta(days=5)).isoformat()
-    radky = []
-    for u in uklidy(date_from=od, date_to=kontext.dnes().isoformat()):
-        stejna_rez = str(u.get("departed_reservation_id") or "") == str(rezervace.get("id"))
-        stejny_pobyt = (u.get("smoobu_id") == str((rezervace.get("apartment") or {}).get("id"))
-                        and u.get("date") == str(rezervace.get("departure"))[:10]
-                        and _klic(u.get("departed_guest")) == _klic(rezervace.get("guest-name")))
-        if not (stejna_rez or stejny_pobyt):
-            continue
-        if u.get("notes"):
-            radky.append(f"Úklid ({u.get('cleaner') or '?'}): {u['notes']}")
-        radky += [f"Problém – {TYP_PROBLEMU.get(p.get('type'), p.get('type'))}: {p.get('text', '')}"
-                  for p in u.get("issues") or []]
-    return "\n".join(radky)
-
-
 # ---------------------------------------------------------------- hlídání (volá se v každém cyklu agenta)
 
-def _nazev(u, byty_):
-    return (byty_.get(str(u.get("smoobu_id"))) or {}).get("name") or f"byt {u.get('smoobu_id')}"
-
-
 def zkontroluj(smoobu, db):
-    """Projde nově dokončené úklidy (kód keyboxu, problémy) a v den příjezdu hlídá, že je byt uklizený."""
+    """Po každém odkliknutém úklidu zkontroluje kód, hlídá rozpory v kódech a v den příjezdu, že je uklizeno."""
     if not zapnuto():
         return
-    ted = datetime.now().astimezone()
-    od = db.nastaveni("uklidy_od") or (ted - timedelta(hours=12)).isoformat(timespec="seconds")
-    byty_ = byty()
-    for u in sorted(uklidy(updated_since=od), key=lambda u: u.get("updated_at") or ""):
-        if u.get("status") not in ("done", "problem") or db.nastaveni(f"uklid_{u['id']}") == u.get("updated_at"):
+    dnes = kontext.dnes().isoformat()
+    prvni_beh = db.nastaveni("uklidy_inicializovano") != "ano"
+    for p in pobyty():
+        if not p["uklizeno"] or db.nastaveni(f"uklid_{p['id']}") == "zkontrolovano":
             continue
-        _vyhodnot(smoobu, db, u, _nazev(u, byty_))
-        db.uloz_nastaveni(f"uklid_{u['id']}", u.get("updated_at"))
-    db.uloz_nastaveni("uklidy_od", (ted - timedelta(minutes=10)).isoformat(timespec="seconds"))  # rezerva na zpoždění
-    _hlidej_prijezdy(smoobu, db, byty_)
+        if not prvni_beh and p["datum"] >= dnes:  # starší úklidy z doby před zapnutím napojení nehlásit
+            _po_uklidu(db, p)
+        db.uloz_nastaveni(f"uklid_{p['id']}", "zkontrolovano")
+    db.uloz_nastaveni("uklidy_inicializovano", "ano")
+    for smoobu_id in {p["smoobu_id"] for p in pobyty()}:
+        _hlidej_rozpor(db, smoobu_id)
+    _hlidej_prijezdy(smoobu, db)
 
 
-def _vyhodnot(smoobu, db, u, nazev):
-    kdo = u.get("cleaner") or "uklízečka"
-    keybox = u.get("keybox") or {}
-    db.zapis(u.get("departed_reservation_id") or "", "uklid", u)
-    if u.get("status") == "problem":
-        oznameni.posli(f"🧹❗ {nazev}: {kdo} nahlásila, že byt nejde připravit.\n{u.get('notes') or ''}")
-    elif keybox.get("status") == "changed":
-        oznameni.posli(f"🔑 {nazev}: {kdo} po úklidu změnila kód keyboxu {keybox.get('previous_code') or '?'} → "
-                       f"{keybox.get('code')}. Agent od teď posílá nový kód.")
-        zneplatni_instrukce(db, u.get("smoobu_id"), keybox.get("code"))
-    elif keybox.get("status") != "confirmed":
-        oznameni.posli(f"⚠️ {nazev}: úklid je hotový, ale {kdo} nepotvrdila kód na keyboxu. "
-                       "Než pošlete hostovi instrukce, ověř kód.")
-    problemy = [f"• {TYP_PROBLEMU.get(p.get('type'), p.get('type'))}: {p.get('text', '')}" for p in u.get("issues") or []]
-    if problemy:
-        oznameni.posli(f"🧹 {nazev} – {kdo} při úklidu zjistila:\n" + "\n".join(problemy))
+def _po_uklidu(db, p):
+    kod = str((_apartman(p["smoobu_id"]).get("prijezd") or {}).get("keybox_kod") or "").strip()
+    if p["kod"] and p["kod"] == kod:
+        db.zapis("", "uklid", {"byt": p["byt"], "datum": p["datum"], "kod": "sedí"})
+    elif not p["kod"]:
+        oznameni.posli(f"🧹 {p['byt']}: úklid {p['datum']} je odkliknutý, ale v aplikaci u něj není zapsaný kód. "
+                       f"Ověřte prosím, že na keyboxu je {kod or '(kód ve znalostní bázi chybí)'}.")
+    # jiný kód hlásí _hlidej_rozpor
 
 
-def _instrukce(db, reservation_id):
-    """Poslední připravené instrukce k příjezdu dané rezervace (kód a byt, pro který byly), nebo {}."""
-    radek = db.conn.execute("SELECT detail FROM udalosti WHERE akce = 'instrukce_prijezd' AND reservation_id = ? "
-                            "ORDER BY id DESC LIMIT 1", (str(reservation_id),)).fetchone()
-    return json.loads(radek[0]) if radek else {}
+def _hlidej_rozpor(db, smoobu_id):
+    rozpor = rozpor_v_kodu(smoobu_id)
+    if not rozpor or db.nastaveni(f"rozpor_kodu_{smoobu_id}") == rozpor:
+        return
+    nazev = _apartman(smoobu_id).get("nazev") or smoobu_id
+    oznameni.posli(f"🔑❗ {nazev}: {rozpor}. Dokud nebude jasné, který kód platí, agent ho hostům neposílá. "
+                   "Napište mi správný kód (nebo ho opravte v aplikaci úklidů).")
+    db.uloz_nastaveni(f"rozpor_kodu_{smoobu_id}", rozpor)
+    zneplatni_instrukce(db, smoobu_id)
 
 
-def zneplatni_instrukce(db, smoobu_id, novy_kod):
-    """Čekající/naplánované instrukce k příjezdu se starým kódem se neodešlou – agent připraví nové."""
-    for navrh_id, rid, text, tg in db.conn.execute(
-            "SELECT id, reservation_id, text, tg_message_id FROM navrhy WHERE stav IN ('ceka', 'schvaleno')").fetchall():
-        instrukce = _instrukce(db, rid)
-        stary = instrukce.get("kod")
-        if str(instrukce.get("smoobu_id")) != str(smoobu_id) or not stary or stary == novy_kod or stary not in text:
-            continue
-        db.uprav_navrh(navrh_id, stav="zastarale")
-        db.uloz_nastaveni(f"prijezd_{rid}", "")  # v příštím cyklu se připraví znovu s novým kódem
-        oznameni.odeber_tlacitka(tg)
-        oznameni.posli(f"♻️ Instrukce k příjezdu (rez. {rid}) obsahovaly starý kód {stary} – neodešlu je, "
-                       f"připravím nové s kódem {novy_kod} ke schválení.")
-
-
-def kod_stale_plati(db, navrh):
-    """Pojistka těsně před odesláním: obsahuje návrh kód keyboxu, který už na keyboxu není?
-    Vrací None, když je vše v pořádku, jinak text upozornění pro hostitele."""
-    if not zapnuto():
-        return None
-    instrukce = _instrukce(db, navrh["reservation_id"])
-    stary = instrukce.get("kod")
-    if not stary or stary not in navrh["text"] or not instrukce.get("smoobu_id"):
-        return None
-    try:
-        aktualni = kod_bytu(instrukce["smoobu_id"])
-    except UklidyChyba as e:
-        return f"Nepodařilo se ověřit kód keyboxu v aplikaci úklidů ({e}), proto zprávu s kódem {stary} neodesílám."
-    if aktualni and aktualni != stary:
-        zneplatni_instrukce(db, instrukce["smoobu_id"], aktualni)
-        return f"Kód keyboxu se mezitím změnil ({stary} → {aktualni}), instrukce připravím znovu."
-    return None
-
-
-def _hlidej_prijezdy(smoobu, db, byty_):
-    ted = datetime.now()
-    if ted.time() < cas(config.UKLID_KONTROLA_HODINA):
+def _hlidej_prijezdy(smoobu, db):
+    if datetime.now().time() < cas(config.UKLID_KONTROLA_HODINA):
         return
     dnes = kontext.dnes()
+    nase = {p["smoobu_id"] for p in pobyty()}
     for r in smoobu.reservations(dnes, dnes):
-        if r.get("is-blocked-booking") or db.nastaveni(f"uklid_kontrola_{r['id']}") == "hotovo":
+        smoobu_id = str((r.get("apartment") or {}).get("id"))
+        if r.get("is-blocked-booking") or smoobu_id not in nase or db.nastaveni(f"uklid_kontrola_{r['id']}") == "hotovo":
             continue
-        smoobu_id = (r.get("apartment") or {}).get("id")
-        if str(smoobu_id) not in byty_:
-            continue  # byt v aplikaci úklidů (zatím) není
         uklizeno, popis = stav_pro_prijezd(smoobu_id, dnes)
         if not uklizeno:
             oznameni.posli(f"🧹⏰ Dnes přijíždí {r.get('guest-name')} do bytu {(r.get('apartment') or {}).get('name')} "

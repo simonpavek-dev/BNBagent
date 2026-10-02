@@ -21,6 +21,7 @@ prijezd:
   postup: ""
   kod_vchod: ""          # stálý kód od domu (pokud je)
   keybox_kod: ""         # kód keyboxu – mění se u každé rezervace (ke kódu se přičte 1010)
+  keybox_kod_overeno: ""   # kdy hostitel kód naposledy ověřil (RRRR-MM-DD)
   keybox_kod_plati_pro_rezervaci: ""   # ID rezervace, pro kterou kód výše platil
   kody_sdelit_nejdrive_dni_pred_prijezdem: 1   # dřív kódy agent neprozradí
 
