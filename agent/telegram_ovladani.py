@@ -1,7 +1,10 @@
 """Ovládání agenta z Telegramu: tlačítka ✅ Odeslat / ✏️ Upravit / ❌ Neposílat a odpovědi hostitele."""
 import logging
 
-from . import config, navrhy, oznameni
+import re
+import unicodedata
+
+from . import config, navrhy, oznameni, spravce
 
 log = logging.getLogger("agent")
 
@@ -33,6 +36,23 @@ def _jmeno(uzivatel):
     """Jméno toho, kdo ve skupině klikl nebo psal (např. „Šimon“)."""
     u = uzivatel or {}
     return " ".join(x for x in (u.get("first_name"), u.get("last_name")) if x) or u.get("username") or ""
+
+
+def _pokyn_pro_vasila(msg, text):
+    """Text pokynu, když je zpráva určená Vasilovi: začíná oslovením „Vasile“/„Vasil“, zmíní @bota,
+    odpovídá na jeho zprávu, nebo přišla v soukromém chatu. Jinak None."""
+    if not text:
+        return None
+    bez_diakritiky = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode().lower()
+    m = re.match(r"\s*(@\w*bot\b|vasil[ei]?\b)[\s,:!-]*", bez_diakritiky)
+    if m:
+        return text[m.end():].strip() or "Ahoj"
+    if "@" in text and "bot" in bez_diakritiky and re.search(r"@\w*bot\b", bez_diakritiky):
+        return re.sub(r"@\w*bot\b", "", text, flags=re.I).strip()
+    odpoved_na = (msg.get("reply_to_message") or {}).get("from") or {}
+    if odpoved_na.get("is_bot") or (msg.get("chat") or {}).get("type") == "private":
+        return text
+    return None
 
 
 def _klic_upravy(uzivatel):
@@ -84,9 +104,12 @@ def _zprava(db, msg):
         oznameni.posli("Úprava zrušena. Původní návrh má pořád svoje tlačítka.")
         return
     if not upravuje or not text:
-        # ve skupině si spolu můžete normálně psát – bot reaguje jen na toho, kdo klikl na ✏️ Upravit
-        if (msg.get("chat") or {}).get("type") == "private":
-            oznameni.posli("Na návrhy odpovídej tlačítky pod nimi (✅ Odeslat / ✏️ Upravit / ❌ Neposílat).")
+        # ve skupině si spolu můžete normálně psát – bot reaguje jen na ✏️ Upravit a na zprávy určené jemu
+        pokyn = _pokyn_pro_vasila(msg, text)
+        if pokyn:
+            oznameni.akce_psani()
+            odpoved = spravce.odpovez(db, f"{_jmeno(msg.get('from')) or 'Hostitel'}: {pokyn}")
+            oznameni.posli(odpoved, odpoved_na=msg.get("message_id"))
         return
 
     puvodni = db.navrh(int(upravuje))

@@ -1,4 +1,4 @@
-"""Chat s agentem v dashboardu: hostitel zadává změny, agent upravuje znalostní bázi a odpovídá na dotazy."""
+"""Chat s agentem (ovládací panel i Telegram skupina): hostitel zadává změny, agent upravuje znalostní bázi a odpovídá na dotazy."""
 import difflib
 import json
 import logging
@@ -7,14 +7,15 @@ from datetime import datetime, timedelta
 
 import yaml
 
-from . import config, mozek, prace
+from . import config, kontext, mozek, oznameni, prace, uklidy
 
 log = logging.getLogger("agent")
 ZALOHY_DIR = config.DATA_DIR / "zalohy"
 MAX_KOL = 10
 
 INSTRUKCE = """Jsi AI agent, který za hostitele vyřizuje zprávy hostů jeho apartmánů na Airbnb a Booking.com přes Smoobu.
-Teď si s tebou hostitel píše v ovládacím panelu. Mluv česky, stručně a věcně.
+Teď si s tebou hostitel píše v ovládacím panelu nebo v Telegram skupině (tam je u zprávy jméno, kdo píše – hostitelů je víc).
+Mluv česky, stručně a věcně.
 Chat zobrazuje jen prostý text: nepoužívej Markdown (žádné **, #, tabulky ani `kód`), odrážky piš pomlčkou.
 
 Co umíš:
@@ -22,9 +23,11 @@ Co umíš:
   apartmany/<byt>.yaml (adresa, check-in, kódy, Wi-Fi, vybavení, parkování…) a poznamky-k-hostum.yaml (poznámky od úklidu k pobytům).
   Před úpravou si soubor vždy přečti. Měň jen to, o co hostitel žádá, zachovej strukturu a komentáře.
   Po úpravě stručně řekni, co přesně se změnilo. Když není jasné, kterého bytu se změna týká, zeptej se.
-- Kódy keyboxů: v každém bytě je keybox_kod a keybox_kod_plati_pro_rezervaci (ID rezervace ze Smoobu). Ke kódu se u každé další
-  rezervace automaticky přičte 1010. Když hostitel nastaví nový kód, zapiš kód i ID rezervace, pro kterou platí – když ID nezná, zeptej se.
-  Stálý kód od vchodu do domu je kod_vchod.
+- Kódy keyboxů: hlavní zdroj je aplikace úklidů (agent z ní každých 15 minut přebírá kód zapsaný u úklidu). Aktuální kódy zjistíš
+  nástrojem kody. Když hostitel řekne nový kód, zapiš ho do apartmany/<byt>.yaml jako keybox_kod a do keybox_kod_overeno dnešní
+  datum (RRRR-MM-DD) – bez data by ho přebil starší kód z aplikace. Stálý kód od vchodu do domu je kod_vchod.
+- Rezervace a konverzace s hosty ze Smoobu jen číst (rezervace, konverzace). Stav úklidů zjistíš nástrojem stav_uklidu.
+- Zprávu hostovi nikdy neposíláš sám: nástrojem navrhni_zpravu_hostovi připravíš návrh, který hostitelé schválí tlačítkem.
 - Říct, co jsi dělal (aktivita), kolik to stálo (naklady) a přepnout režim (nastav_rezim).
 - Vrátit poslední změnu souboru ze zálohy (vrat_zmenu).
 
@@ -131,6 +134,22 @@ NASTROJE = [
                       "required": ["pocet"], "additionalProperties": False}},
     {"name": "naklady", "description": "Útrata za Claude API v dolarech (dnes, 7 dní, tento měsíc).",
      "input_schema": {"type": "object", "properties": {}, "additionalProperties": False}},
+    {"name": "rezervace", "description": "Rezervace ze Smoobu s příjezdem v rozmezí dat (RRRR-MM-DD): byt, host, kanál, termín, ID.",
+     "input_schema": {"type": "object", "properties": {"od": {"type": "string"}, "do": {"type": "string"}},
+                      "required": ["od", "do"], "additionalProperties": False}},
+    {"name": "konverzace", "description": "Konverzace s hostem k rezervaci (ID ze Smoobu), od nejstarší zprávy.",
+     "input_schema": {"type": "object", "properties": {"reservation_id": {"type": "string"}},
+                      "required": ["reservation_id"], "additionalProperties": False}},
+    {"name": "kody", "description": "Aktuální kódy keyboxů, které agent posílá hostům (podle aplikace úklidů a znalostní báze).",
+     "input_schema": {"type": "object", "properties": {}, "additionalProperties": False}},
+    {"name": "stav_uklidu", "description": "Úklidy našich bytů z aplikace úklidů v rozmezí dat (RRRR-MM-DD): datum, kód, uklizeno.",
+     "input_schema": {"type": "object", "properties": {"od": {"type": "string"}, "do": {"type": "string"}},
+                      "required": ["od", "do"], "additionalProperties": False}},
+    {"name": "navrhni_zpravu_hostovi",
+     "description": "Připraví návrh zprávy hostovi k rezervaci a pošle ho do Telegram skupiny s tlačítky Odeslat/Upravit/Neposílat. "
+                    "Hostovi se nic neodešle, dokud to hostitel neschválí. Text piš v jazyce hosta, podpis podle obecne.yaml.",
+     "input_schema": {"type": "object", "properties": {"reservation_id": {"type": "string"}, "text": {"type": "string"}},
+                      "required": ["reservation_id", "text"], "additionalProperties": False}},
     {"name": "nastav_rezim",
      "description": "Přepne režim: 'navrh' = hostům nic neposílá bez schválení, 'ostre' = odpovídá hostům sám. "
                     "Do 'ostre' jen po výslovném potvrzení hostitele.",
@@ -156,6 +175,31 @@ def _spust(db, nazev, vstup):
         return aktivita(db, vstup.get("pocet") or 30)
     if nazev == "naklady":
         return json.dumps(naklady())
+    if nazev == "rezervace":
+        smoobu = prace.vytvor_smoobu()
+        od, do = kontext._datum(vstup["od"]), kontext._datum(vstup["do"])
+        return json.dumps([{"id": r.get("id"), "byt": (r.get("apartment") or {}).get("name"), "host": r.get("guest-name"),
+                            "kanal": (r.get("channel") or {}).get("name"), "prijezd": r.get("arrival"), "odjezd": r.get("departure"),
+                            "osob": r.get("adults"), "blokace": r.get("is-blocked-booking")}
+                           for r in smoobu.reservations(od, do)], ensure_ascii=False)
+    if nazev == "konverzace":
+        return kontext.popis_konverzace(prace.vytvor_smoobu().messages(vstup["reservation_id"]))[-12000:]
+    if nazev == "kody":
+        from . import znalosti
+        return json.dumps({d.get("nazev"): uklidy.aktualni_kod(d.get("smoobu_id"), db) for _, d in znalosti.vsechny_apartmany()},
+                          ensure_ascii=False)
+    if nazev == "stav_uklidu":
+        if not uklidy.zapnuto():
+            return "Napojení na aplikaci úklidů není zapnuté."
+        return json.dumps([p for p in uklidy.pobyty() if vstup["od"] <= (p["datum"] or "") <= vstup["do"]], ensure_ascii=False)
+    if nazev == "navrhni_zpravu_hostovi":
+        from .navrhy import TLACITKA_NAVRHU
+        r = prace.vytvor_smoobu().reservation(vstup["reservation_id"])
+        hlavicka = prace._hlavicka(r)
+        navrh_id = db.novy_navrh(r["id"], "", vstup["text"], r.get("language") or "", hlavicka)
+        db.uprav_navrh(navrh_id, tg_message_id=oznameni.posli(
+            f"✍️ NÁVRH ZPRÁVY (z pokynu hostitele)\n{hlavicka}\n\n{vstup['text']}", TLACITKA_NAVRHU(navrh_id)))
+        return f"Návrh {navrh_id} je ve skupině ke schválení."
     if nazev == "nastav_rezim":
         db.uloz_nastaveni("rezim", vstup["rezim"])
         db.zapis("", "zmena_rezimu", vstup["rezim"])

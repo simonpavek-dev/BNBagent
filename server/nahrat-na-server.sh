@@ -26,6 +26,13 @@ if [ "${2:-}" = "--prvni" ]; then
     mkdir -p $ADRESAR/data"
 fi
 
+if [ "${2:-}" != "--prvni" ]; then
+  # znalostní bázi může Vasil upravit i z Telegramu (na serveru) – novější soubory ze serveru nejdřív stáhnout sem
+  echo "→ Stahuji změny znalostní báze provedené na serveru…"
+  rsync -au --existing "$CIL:$ADRESAR/znalostni-baze/" znalostni-baze/
+  rsync -au --existing "$CIL:$ADRESAR/poznamky-k-hostum.yaml" poznamky-k-hostum.yaml
+fi
+
 echo "→ Nahrávám kód, znalostní bázi a klíče…"
 rsync -az --delete \
   --exclude .venv/ --exclude __pycache__/ --exclude .git/ --exclude .DS_Store --exclude 'data/' \

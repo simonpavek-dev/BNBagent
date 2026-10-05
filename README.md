@@ -70,6 +70,14 @@ Na zprávy z doby před spuštěním agent neodpovídá, ty vyřídíš sám. Ne
 ### 7. Ostrý provoz
 Když jsou návrhy dobré, přepni v `.env` na `REZIM=ostre` a agenta restartuj (Ctrl+C a znovu `spustit`).
 
+## Ovládání přes Telegram
+Ve skupině stačí Vasila oslovit – zpráva začínající „Vasile“ (nebo zmínka @bota či odpověď na jeho zprávu):
+- „Vasile, jaké kódy teď posíláš?“ · „Vasile, kdo přijíždí tento týden?“ · „Vasile, jak je na tom Petrská s úklidem?“
+- „Vasile, do Školské doplň, že je tam kávovar na kapsle Nespresso.“ (upraví znalostní bázi, ukáže změnu)
+- „Vasile, napiš hostovi ve Vojtěšské 2+1, že…“ (připraví návrh – odešle se až po ✅)
+Ostatní zprávy ve skupině Vasil ignoruje. Změny znalostní báze z Telegramu jsou na serveru;
+`server/nahrat-na-server.sh` si je před nahráním stáhne zpět.
+
 ## Kde bude agent běžet
 - **Na začátek na tvém Macu.** Funguje, jen když je Mac zapnutý a nespí.
   - Spuštění: dvojklik na `spustit-agenta.command` (otevře okno Terminálu, nech ho otevřené/minimalizované).

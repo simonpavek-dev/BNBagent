@@ -35,7 +35,15 @@ def telegram_zapnuty():
     return bool(config.TELEGRAM_BOT_TOKEN and config.TELEGRAM_CHAT_ID)
 
 
-def posli(text, tlacitka=None):
+def akce_psani():
+    """Ukáže ve skupině „Vasil píše…“, než připraví odpověď."""
+    try:
+        _api("sendChatAction", chat_id=config.TELEGRAM_CHAT_ID, action="typing")
+    except requests.RequestException:
+        pass
+
+
+def posli(text, tlacitka=None, odpoved_na=None):
     """Pošle zprávu hostiteli. tlacitka = [(popisek, callback_data), ...] se připojí k poslední části.
     Vrací message_id poslední odeslané části (nebo None)."""
     log.info("UPOZORNĚNÍ:\n%s", text)
@@ -46,6 +54,8 @@ def posli(text, tlacitka=None):
     message_id = None
     for i, cast in enumerate(casti):
         data = {"chat_id": config.TELEGRAM_CHAT_ID, "text": cast, "disable_web_page_preview": True}
+        if odpoved_na and i == 0:
+            data["reply_parameters"] = {"message_id": odpoved_na, "allow_sending_without_reply": True}
         if tlacitka and i == len(casti) - 1:
             data["reply_markup"] = {
                 "inline_keyboard": [[{"text": p, "callback_data": c}] for p, c in tlacitka]
