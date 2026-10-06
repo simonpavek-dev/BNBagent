@@ -5,7 +5,12 @@
 # ============================================================
 
 hostitel:
-  podpis: "Rentys team"
+  podpis: |
+    Rentys team
+    For a quicker reply you can also reach us on WhatsApp:
+    Simon +420 725 985 405
+    Michael +420 723 270 790
+  podpis_kratky: "Rentys team"   # u krátkých zdvořilostních odpovědí (díky, potvrzení času) stačí tohle
   osloveni: "tykání/vykání podle hosta, jinak zdvořile vykat"
   ton: >
     Přátelský, stručný a konkrétní. Krátké odstavce, žádné dlouhé omáčky.
@@ -62,8 +67,25 @@ jak_to_u_nas_funguje:
     U všech bytů je parkování na ulici placené (modrá, fialová… zóna). Doporuč aplikaci EasyPark:
     host zadá SPZ auta, vybere zónu a zaplatí.
   zvirata: "Zvířata jsou ve všech bytech zakázána."
-  telefon: "Telefonní číslo hostitele hostům nikdy nedávej. Komunikace probíhá jen zprávami přes platformu."
+  telefon: "Telefon/WhatsApp hostům dávej jen tak, jak je v podpisu (Simon a Michael). Jiná čísla nikdy."
   zavady: "Nefunkční vybavení (fén, spotřebiče, topení…) vždy eskalovat, hostovi slíbit jen, že to hostitel řeší."
+
+# Rámec zprávy s instrukcemi k příjezdu – stejný pro všechny byty. Agent dosadí proměnné v <…> ze souboru bytu
+# (adresa, kódy, postup do bytu, Wi-Fi, check-out) a do jazyka hosta ho přeloží, jen když host nepíše anglicky.
+sablona_zpravy_k_prijezdu: |
+  Hi <jméno hosta>,
+
+  welcome to Prague! Here are your check-in details for <adresa> (<název budovy, pokud je>). Self check-in is possible from <check_in_od>, a late arrival is no problem.
+
+  <postup do bytu: u bytu s prijezd.zprava_k_prijezdu doslova tento text s dosazenými kódy, jinak kroky z prijezd.postup s kódy>
+
+  Wi-Fi: network <wifi.sit> / password <wifi.heslo>
+
+  Check-out is by <odjezd.check_out_do> - <odjezd.postup v angličtině>
+
+  If you need anything during your stay, just message us anytime.
+
+  <podpis>
 
 # Cesty po Praze (agent je ověřuje na mapách)
 trasy:
@@ -72,7 +94,7 @@ trasy:
 
 # Kontakty pro nouzové situace (agent je smí hostovi sdělit)
 nouzove_kontakty:
-  hostitel_telefon: ""                  # telefon hostům NEDÁVAT – v nouzi 112 a eskalovat
+  hostitel_telefon: "WhatsApp: Simon +420 725 985 405, Michael +420 723 270 790 (v nouzi i 112 a eskalovat)"
 
 # Obecné tipy k městu, platí pro všechny apartmány (doplň si)
 mesto:
