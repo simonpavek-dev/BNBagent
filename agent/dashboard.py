@@ -61,7 +61,8 @@ def _aktivita(db, pocet=80):
                            text=d.get("zprava_hosta", ""), poznamka=d.get("duvod", ""))
         elif akce.startswith("odeslano"):
             kde = {"odeslano": "automaticky", "odeslano_z_telegramu": "schváleno v Telegramu",
-                   "odeslano_z_panelu": "schváleno v panelu"}.get(akce, "")
+                   "odeslano_z_panelu": "schváleno v panelu", "odeslano_z_planovace": "naplánované",
+                   "odeslano_z_automaticky": "automaticky"}.get(akce, "")
             polozka.update(druh="odeslano", titulek=f"Odesláno hostovi ({kde})", text=d if isinstance(d, str) else "")
         elif akce == "hodnoceni" and isinstance(d, dict):
             polozka.update(druh="hodnoceni", titulek="Návrh hodnocení hosta", text=d.get("verejne_hodnoceni", ""))

@@ -249,6 +249,18 @@ def priprav_prijezdy(smoobu, db, den=None):
         kanal = (r.get("channel") or {}).get("name", "").lower()
         if any(k in kanal for k in KANALY_SE_ZPRAVAMI):
             navrh_id = db.novy_navrh(r["id"], "", v["zprava"], v["jazyk_hosta"], _hlavicka(r), odeslat_po)
+            if config.PRIJEZDY_AUTOMATICKY:  # instrukce odchází samy, hostitelé je mohou jen zrušit
+                from .navrhy import odeslat
+                if odeslat_po:
+                    db.uprav_navrh(navrh_id, stav="schvaleno")
+                    db.uprav_navrh(navrh_id, tg_message_id=oznameni.posli(
+                        f"🔑 INSTRUKCE K PŘÍJEZDU {den.day}. {den.month}. – odešlu je hostovi sám {kdy(odeslat_po)} "
+                        f"(kód {kod})\n{_hlavicka(r)}\n\n{v['zprava']}",
+                        [("❌ Zrušit odeslání", f"zahodit:{navrh_id}")]))
+                else:
+                    _, zprava = odeslat(smoobu, db, db.navrh(navrh_id), "automaticky")
+                    oznameni.posli(f"{zprava} – instrukce k příjezdu (kód {kod})\n\n{v['zprava']}")
+                continue
             planek = f"po schválení odešlu {kdy(odeslat_po)}" if odeslat_po else "po schválení odešlu hned"
             db.uprav_navrh(navrh_id, tg_message_id=oznameni.posli(
                 f"🔑 INSTRUKCE K PŘÍJEZDU {den.day}. {den.month}. – kód keyboxu {kod} ({planek})\n"

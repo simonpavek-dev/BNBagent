@@ -31,6 +31,9 @@ HODNOCENI_HODINA = int(os.getenv("HODNOCENI_HODINA", "11"))  # kdy denně připr
 # schválené se odešlou v den příjezdu v PRIJEZD_ODESLAT_HODINA
 PRIJEZD_HODINA = int(os.getenv("PRIJEZD_HODINA", "18"))
 PRIJEZD_ODESLAT_HODINA = int(os.getenv("PRIJEZD_ODESLAT_HODINA", "10"))
+# ano = instrukce k příjezdu se v PRIJEZD_ODESLAT_HODINA odešlou samy (bez schválení, jde je jen zrušit);
+# odpovědi na zprávy hostů se dál řídí REZIM
+PRIJEZDY_AUTOMATICKY = os.getenv("PRIJEZDY_AUTOMATICKY", "ne").strip().lower() == "ano"
 
 # Aplikace úklidů (uklid.kolbl-apartments.cz) – účet agenta; prázdné = napojení vypnuté
 UKLIDY_URL = os.getenv("UKLIDY_URL", "").strip()
