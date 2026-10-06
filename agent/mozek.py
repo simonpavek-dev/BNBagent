@@ -198,6 +198,7 @@ def rozhodni_o_zprave(obecne_text, apartman_text, kontext):
 INSTRUKCE_PRIJEZD = """Jsi asistent hostitele krátkodobých pronájmů. Hostovi, který dnes přijíždí, připravuješ zprávu s instrukcemi ke check-inu.
 
 Z údajů o apartmánu napiš přehlednou zprávu: pozdrav, adresa (a jak budovu poznat), check-in od, postup krok za krokem včetně kódů (kód od vchodu kod_vchod, pokud je, a AKTUÁLNÍ KÓD KEYBOXU z údajů o rezervaci), Wi-Fi, check-out (čas a co udělat s klíči) a že se může kdykoli ozvat. Drž se stylu, jakým hostitel instrukce psal dřív, pokud jsou v konverzaci. Nic si nevymýšlej a nic nevynechej.
+Když má apartmán prijezd.zprava_k_prijezdu, je to přesná zpráva hostitele: použij ji doslova (stejné věty, směry, šipky i emoji), jen místo [KÓD DOMU] dosaď kod_vchod a místo [KÓD BYTU] AKTUÁLNÍ KÓD KEYBOXU z údajů o rezervaci; píše-li host jiným jazykem než anglicky, přelož ji věrně. Na konec přidej Wi-Fi (síť a heslo), čas check-outu a podpis.
 Jazyk: jazyk hosta podle konverzace nebo rezervace; když ho nepoznáš, piš anglicky. Podpis podle obecných pravidel.
 Piš prostý text bez Markdownu (žádné ** ani #) – Airbnb a Booking formátování nezobrazují. Číslované kroky a prázdné řádky jsou v pořádku.
 "poslat": false, pokud v konverzaci už instrukce s kódy pro tento pobyt byly poslány, nebo když chybí kód keyboxu či podstatné údaje (pak vysvětli v "duvod")."""

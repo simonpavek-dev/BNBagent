@@ -16,7 +16,7 @@ import logging
 import re
 import time
 import unicodedata
-from datetime import datetime, time as cas
+from datetime import datetime, time as cas, timedelta
 
 import requests
 
@@ -248,6 +248,47 @@ def zkontroluj(smoobu, db):
     for smoobu_id in {p["smoobu_id"] for p in pobyty()}:
         _prevezmi_kod(db, smoobu_id)
     _hlidej_prijezdy(smoobu, db)
+    _nabidni_drivejsi_checkin(smoobu, db)
+
+
+TEXT_DRIVEJSI_CHECKIN = ("Dobrá zpráva! Náš úklidový tým už všechno stihl a byt je pro vás připravený už teď – "
+                         "nemusíte čekat do {check_in}, můžete se ubytovat kdykoli. Přístupové údaje jsou stejné "
+                         "jako v naší předchozí zprávě. Příjemný pobyt!")
+
+
+def _nabidni_drivejsi_checkin(smoobu, db):
+    """V den příjezdu: instrukce už host má, check-in je až od 15:00 a úklid je v aplikaci odkliknutý dřív
+    → hostovi nabídnout, že může přijít hned (v režimu návrhů jako návrh ke schválení)."""
+    from . import mozek, navrhy, prace  # prace importuje kody → uklidy; tady až za běhu
+    ted = datetime.now()
+    nase = {p["smoobu_id"] for p in pobyty()}
+    for r in smoobu.reservations(kontext.dnes(), kontext.dnes()):
+        smoobu_id = str((r.get("apartment") or {}).get("id"))
+        if r.get("is-blocked-booking") or smoobu_id not in nase or db.nastaveni(f"drivejsi_{r['id']}"):
+            continue
+        check_in = str((_apartman(smoobu_id).get("prijezd") or {}).get("check_in_od") or "15:00")
+        konec = datetime.combine(ted.date(), datetime.strptime(check_in, "%H:%M").time()) - timedelta(minutes=30)
+        if not (datetime.strptime(config.DRIVEJSI_CHECKIN_OD, "%H:%M").time() <= ted.time() < konec.time()):
+            continue
+        if not stav_pro_prijezd(smoobu_id, kontext.dnes())[0]:
+            continue  # ještě neuklizeno – zkusí se za 10 minut
+        kod = aktualni_kod(smoobu_id, db)
+        zpravy = smoobu.messages(r["id"])
+        if not kod or not any(m.get("type") != 1 and kod in (m.get("message") or "") for m in zpravy):
+            continue  # instrukce s kódem host ještě nemá
+        jazyk = _instrukce(db, r["id"]).get("jazyk_hosta") or r.get("language") or "angličtina"
+        text = mozek.priprav_zpravu_hostitele(TEXT_DRIVEJSI_CHECKIN.format(check_in=check_in), jazyk)
+        hlavicka = prace._hlavicka(r)
+        db.uloz_nastaveni(f"drivejsi_{r['id']}", ted.isoformat(timespec="seconds"))
+        if prace.rezim(db) == "ostre":
+            smoobu.send_message(r["id"], text)
+            db.zapis(r["id"], "odeslano", text)
+            oznameni.posli(f"🧹✅ Byt je uklizený dřív – hostovi jsem nabídl dřívější check-in.\n{hlavicka}\n\n{text}")
+        else:
+            navrh_id = db.novy_navrh(r["id"], zpravy[-1].get("id") if zpravy else "", text, jazyk, hlavicka)
+            db.uprav_navrh(navrh_id, tg_message_id=oznameni.posli(
+                f"🧹✅ BYT JE UKLIZENÝ DŘÍV – nabídnout hostovi dřívější check-in?\n{hlavicka}\n\n{text}",
+                navrhy.TLACITKA_NAVRHU(navrh_id)))
 
 
 def _prevezmi_kod(db, smoobu_id):
