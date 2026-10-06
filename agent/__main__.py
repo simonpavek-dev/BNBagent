@@ -121,7 +121,7 @@ def spustit(_args):
                         db.uloz_nastaveni("uklidy_chyba_den", ted.date().isoformat())
                 navrhy.odesli_naplanovane(smoobu, db)
                 posledni_kk = db.nastaveni("kontrola_kalendare")
-                if not posledni_kk or ted - datetime.fromisoformat(posledni_kk) > timedelta(hours=6):
+                if not posledni_kk or ted - datetime.fromisoformat(posledni_kk) > timedelta(hours=config.KONTROLA_KALENDARE_HODIN):
                     prace.kontrola_kalendare(smoobu, db)  # hlídá dvojí rezervace, hlásí jen problémy
                 if (config.HODNOCENI_HOSTU and ted.hour >= config.HODNOCENI_HODINA
                         and db.nastaveni("hodnoceni_den") != ted.date().isoformat()):

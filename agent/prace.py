@@ -1,6 +1,6 @@
 """Hlavní práce agenta: vyřizování zpráv a návrhy hodnocení hostů."""
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import yaml
 
@@ -158,7 +158,7 @@ def _upozorni(db, r, zprava, v, odeslano):
 
 # ---------------------------------------------------------------- kontrola kalendáře
 
-def kontrola_kalendare(smoobu, db, dni=180, hlasit_ok=False):
+def kontrola_kalendare(smoobu, db, dni=365, hlasit_ok=False):
     """Hlídá dvojí rezervace: každá obsazená noc musí být v kalendáři Smoobu zavřená
     a dvě rezervace se v jednom bytě nesmí překrývat. Problémy pošle hostiteli."""
     dnes = kontext.dnes()
@@ -187,12 +187,21 @@ def kontrola_kalendare(smoobu, db, dni=180, hlasit_ok=False):
                                     f"s {jina.get('guest-name')} ({jina['arrival']}→{jina['departure']})")
     db.uloz_nastaveni("kontrola_kalendare", datetime_ted())
     db.zapis("", "kontrola_kalendare", {"problemu": len(problemy), "detail": problemy[:30]})
-    if problemy:
-        oznameni.posli("🚨 KONTROLA KALENDÁŘE – hrozí dvojí rezervace:\n" + "\n".join(problemy[:30]) +
+    otisk = "\n".join(sorted(problemy))
+    posledni = db.nastaveni("kalendar_hlaseno_cas")
+    znovu = not posledni or datetime_ted() > (datetime.fromisoformat(posledni) + timedelta(hours=24)).isoformat()
+    if problemy and (hlasit_ok or otisk != db.nastaveni("kalendar_hlaseno", "") or znovu):
+        nove = otisk != db.nastaveni("kalendar_hlaseno", "")
+        oznameni.posli(("🚨 KONTROLA KALENDÁŘE – hrozí dvojí rezervace" if nove else "🔁 Připomínka – dvojí rezervace pořád trvá")
+                       + ":\n" + "\n".join(problemy[:30]) +
                        "\n\nZkontroluj ve Smoobu i Bookings → Filters → Status → Overbooking.")
+        db.uloz_nastaveni("kalendar_hlaseno_cas", datetime_ted())
+    elif not problemy and db.nastaveni("kalendar_hlaseno"):
+        oznameni.posli("✅ Kontrola kalendáře: dřív hlášené dvojí rezervace už jsou vyřešené.")
     elif hlasit_ok:
         oznameni.posli(f"✅ Kontrola kalendáře: {len(rezervace)} rezervací v {len(po_bytech)} bytech, "
                        "všechny obsazené noci jsou zavřené a nic se nepřekrývá.")
+    db.uloz_nastaveni("kalendar_hlaseno", otisk)
     return problemy
 
 

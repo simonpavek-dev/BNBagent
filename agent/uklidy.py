@@ -258,7 +258,7 @@ TEXT_DRIVEJSI_CHECKIN = ("Dobrá zpráva! Náš úklidový tým už všechno sti
 
 def _nabidni_drivejsi_checkin(smoobu, db):
     """V den příjezdu: instrukce už host má, check-in je až od 15:00 a úklid je v aplikaci odkliknutý dřív
-    → hostovi nabídnout, že může přijít hned (v režimu návrhů jako návrh ke schválení)."""
+    → hostovi nabídnout, že může přijít hned. Vždy jen jako návrh ke schválení ve skupině."""
     from . import mozek, navrhy, prace  # prace importuje kody → uklidy; tady až za běhu
     ted = datetime.now()
     nase = {p["smoobu_id"] for p in pobyty()}
@@ -280,15 +280,11 @@ def _nabidni_drivejsi_checkin(smoobu, db):
         text = mozek.priprav_zpravu_hostitele(TEXT_DRIVEJSI_CHECKIN.format(check_in=check_in), jazyk)
         hlavicka = prace._hlavicka(r)
         db.uloz_nastaveni(f"drivejsi_{r['id']}", ted.isoformat(timespec="seconds"))
-        if prace.rezim(db) == "ostre":
-            smoobu.send_message(r["id"], text)
-            db.zapis(r["id"], "odeslano", text)
-            oznameni.posli(f"🧹✅ Byt je uklizený dřív – hostovi jsem nabídl dřívější check-in.\n{hlavicka}\n\n{text}")
-        else:
-            navrh_id = db.novy_navrh(r["id"], zpravy[-1].get("id") if zpravy else "", text, jazyk, hlavicka)
-            db.uprav_navrh(navrh_id, tg_message_id=oznameni.posli(
-                f"🧹✅ BYT JE UKLIZENÝ DŘÍV – nabídnout hostovi dřívější check-in?\n{hlavicka}\n\n{text}",
-                navrhy.TLACITKA_NAVRHU(navrh_id)))
+        # vždy jen návrh ke schválení – i v ostrém režimu (přání hostitele)
+        navrh_id = db.novy_navrh(r["id"], zpravy[-1].get("id") if zpravy else "", text, jazyk, hlavicka)
+        db.uprav_navrh(navrh_id, tg_message_id=oznameni.posli(
+            f"🧹✅ BYT JE UKLIZENÝ DŘÍV – nabídnout hostovi dřívější check-in?\n{hlavicka}\n\n{text}",
+            navrhy.TLACITKA_NAVRHU(navrh_id)))
 
 
 def _prevezmi_kod(db, smoobu_id):
