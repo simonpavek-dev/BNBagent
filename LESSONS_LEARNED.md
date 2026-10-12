@@ -33,6 +33,10 @@ Pokyn „změň číslo bytu všude“ přepsal i `uklidy_nazev`, i když aplika
 by v testu psal do skutečné databáze.
 → Konfiguraci číst až za běhu (`path=None` → `config.DB_PATH`); `grep "def .*=\s*config\."` při revizi.
 
+## Testy četly přepínače ze skutečného .env
+Po zapnutí funkce v `.env` začal test „vypnuto“ selhávat – `config` se načítá ze skutečného `.env`.
+→ `tests/conftest.py` nastavuje všechny přepínače a režimy na výchozí hodnoty; nový přepínač přidat i tam.
+
 ## X-RateLimit-Retry-After je Unix čas, ne sekundy
 → Vždy číst dokumentaci API, ne odhadovat význam hlavičky podle názvu.
 

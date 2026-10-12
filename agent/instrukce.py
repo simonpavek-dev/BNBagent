@@ -89,13 +89,30 @@ def priprav(apartman, rezervace, kod, zpravy):
     if chybi:
         return {"poslat": False, "zprava": text, "jazyk_hosta": jazyk, "poznamka": "",
                 "duvod": "ve znalostní bázi chybí: " + ", ".join(chybi)}
+    zprava, jazyk, poznamka = _preloz(text, jazyk, chranene, klicove)
+    return {"poslat": True, "zprava": zprava, "jazyk_hosta": jazyk, "duvod": "", "poznamka": poznamka}
+
+
+def _preloz(text, jazyk, chranene, klicove):
+    """Přeloží hotovou anglickou zprávu; chráněné údaje model nevidí (značky). Vrací (zpráva, jazyk, poznámka)."""
     if jazyk in ANGLICTINA:
-        return {"poslat": True, "zprava": text, "jazyk_hosta": "en", "duvod": "", "poznamka": ""}
+        return text, "en", ""
     schovany, znacky = _schovej(text, chranene)
     preklad = _vrat(mozek.preloz_instrukce(schovany, jazyk), znacky) or ""
     chybi_v_prekladu = [h for h in klicove if h not in preklad] if preklad else ["adresa / Wi-Fi / kódy (značky)"]
     if chybi_v_prekladu:
-        return {"poslat": True, "zprava": text, "jazyk_hosta": "en", "duvod": "",
-                "poznamka": f"Překlad do jazyka hosta ({jazyk}) vynechal nebo změnil údaje {', '.join(chybi_v_prekladu)} "
-                            "– posílám anglickou verzi."}
-    return {"poslat": True, "zprava": preklad, "jazyk_hosta": jazyk, "duvod": "", "poznamka": ""}
+        return text, "en", (f"Překlad do jazyka hosta ({jazyk}) vynechal nebo změnil údaje {', '.join(chybi_v_prekladu)} "
+                            "– posílám anglickou verzi.")
+    return preklad, jazyk, ""
+
+
+OPRAVA_KODU = ("Hi {jmeno},\n\na quick update to your check-in details: the keybox code has changed. "
+               "Your new keybox code is {kod}. Everything else in our previous message stays the same.\n\n{podpis}")
+
+
+def oprava_kodu(rezervace, novy_kod):
+    """Zpráva hostovi o změně kódu keyboxu (varianta B, DECISIONS.md D3). Kód dosadí kód, model nanejvýš přeloží.
+    Vrací (zpráva, jazyk, poznámka pro hostitele)."""
+    podpis = str((znalosti.obecne().get("hostitel") or {}).get("podpis") or "").strip()
+    text = OPRAVA_KODU.format(jmeno=_jmeno(rezervace), kod=novy_kod, podpis=podpis)
+    return _preloz(text, _jazyk(rezervace), [novy_kod], [novy_kod])

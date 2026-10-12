@@ -1,9 +1,10 @@
 """Upozornění pro hostitele – přes Telegram (i s tlačítky), případně jen do konzole a logu."""
+import json
 import logging
 
 import requests
 
-from . import config
+from . import config, hodiny
 
 log = logging.getLogger("agent")
 MAX_DELKA = 4000  # Telegram povolí max. 4096 znaků na zprávu
@@ -43,13 +44,41 @@ def akce_psani():
         pass
 
 
-def posli(text, tlacitka=None, odpoved_na=None):
+def posli(text, tlacitka=None, odpoved_na=None, navrh_id=None):
     """Pošle zprávu hostiteli. tlacitka = [(popisek, callback_data), ...] se připojí k poslední části.
-    Vrací message_id poslední odeslané části (nebo None)."""
+    Vrací message_id poslední odeslané části. Když Telegram nejde, uloží zprávu do fronty (doručí se v dalším cyklu,
+    viz dorucit_frontu) a vrátí None – upozornění se nesmí ztratit."""
     log.info("UPOZORNĚNÍ:\n%s", text)
     if not telegram_zapnuty():
         print("\n" + "=" * 60 + "\n" + text + "\n" + "=" * 60)
         return None
+    message_id = _posli_ted(text, tlacitka, odpoved_na)
+    if message_id is None:
+        from .databaze import Databaze
+        Databaze().conn.execute(
+            "INSERT INTO fronta_upozorneni (text, tlacitka, navrh_id, cas) VALUES (?, ?, ?, ?)",
+            (text, json.dumps(tlacitka or [], ensure_ascii=False), navrh_id, hodiny.ted_iso())).connection.commit()
+        log.warning("Telegram nejde – upozornění čeká ve frontě")
+    return message_id
+
+
+def dorucit_frontu(db):
+    """Doručí upozornění, která se dřív nepodařilo poslat (v pořadí). Když Telegram pořád nejde, skončí a zkusí to
+    v dalším cyklu. U návrhů zapíše tg_message_id, aby fungovala tlačítka."""
+    for id_, text, tlacitka, navrh_id, cas in db.conn.execute(
+            "SELECT id, text, tlacitka, navrh_id, cas FROM fronta_upozorneni ORDER BY id").fetchall():
+        kdy = cas.replace("T", " ")[5:16] if cas else "?"
+        message_id = _posli_ted(f"⏳ Zpožděné upozornění (z {kdy}):\n{text}", [tuple(t) for t in json.loads(tlacitka or "[]")])
+        if message_id is None:
+            return
+        db.conn.execute("DELETE FROM fronta_upozorneni WHERE id = ?", (id_,))
+        db.conn.commit()
+        if navrh_id:
+            db.uprav_navrh(navrh_id, tg_message_id=message_id)
+
+
+def _posli_ted(text, tlacitka=None, odpoved_na=None):
+    """Samotné odeslání do Telegramu (bez logu a fronty). Vrací message_id, nebo None při chybě."""
     casti = [text[i:i + MAX_DELKA] for i in range(0, len(text), MAX_DELKA)] or [""]
     message_id = None
     for i, cast in enumerate(casti):

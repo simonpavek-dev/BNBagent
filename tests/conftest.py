@@ -14,6 +14,13 @@ def bez_skutecnych_sluzeb(monkeypatch, tmp_path):
     monkeypatch.setattr(config, "TELEGRAM_BOT_TOKEN", "")
     monkeypatch.setattr(config, "TELEGRAM_CHAT_ID", "")
     monkeypatch.setattr(config, "UKLIDY_HESLO", "")
+    # přepínače a režimy na výchozí hodnoty – testy nesmí záviset na tom, co je zapnuté ve skutečném .env
+    for prepinac in ("ZDVORILOSTI_BEZ_MODELU", "LEVNEJSI_MODEL_PRO_JEDNODUCHE", "INSTRUKCE_ZE_SABLONY",
+                     "PRIJEZDY_AUTOMATICKY"):
+        monkeypatch.setattr(config, prepinac, False)
+    monkeypatch.setattr(config, "REZIM", "navrh")
+    monkeypatch.setattr(config, "MODEL", "claude-opus-5")
+    monkeypatch.setattr(config, "MODEL_JEDNODUCHE", "claude-sonnet-5")
     monkeypatch.setattr(config, "DATA_DIR", tmp_path)
     monkeypatch.setattr(config, "DB_PATH", tmp_path / "agent.db")
     monkeypatch.setattr(config, "LOG_PATH", tmp_path / "agent.log")

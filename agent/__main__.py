@@ -100,6 +100,7 @@ def jeden_cyklus(smoobu, db):
     """Jeden průchod agenta: zprávy hostů, instrukce k příjezdu, úklidy, naplánované zprávy, kalendář, hodnocení.
     Chyba ve vyřizování zpráv se propaguje (smyčka ji počítá); ostatní kroky jsou na sobě nezávislé."""
     log = logging.getLogger("agent")
+    _krok(db, "fronta upozornění", oznameni.dorucit_frontu, db)  # i když Smoobu nejde
     db.uloz_nastaveni("cinnost", "Kontroluji nové zprávy ve Smoobu…")
     prace.vyrid_zpravy(smoobu, db)
     ted = hodiny.ted()

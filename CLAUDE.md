@@ -12,7 +12,7 @@ Znalostní báze = YAML v `znalostni-baze/` (skutečné byty nejsou v gitu). Tes
 - `mozek.py` – volání Claude (rozhodnutí o zprávě, instrukce, hodnocení, překlad); volají `prace`, `navrhy`, `spravce`, `uklidy`.
 - `navrhy.py` – návrhy pro hosty: schválení, plánované odeslání, **brána `odeslat()`**; volají `telegram_ovladani`, `dashboard`, `prace`.
 - `telegram_ovladani.py` – tlačítka a zprávy ze skupiny, „Vasile…“ → `spravce`; volá hlavní smyčka.
-- `oznameni.py` – odesílání a čtení Telegramu (`posli`, tlačítka, getUpdates); volají skoro všechny moduly.
+- `oznameni.py` – Telegram: `posli` (při výpadku do fronty, `dorucit_frontu` v cyklu), tlačítka, getUpdates.
 - `spravce.py` – chat s hostitelem (panel i Telegram) s nástroji: znalostní báze, rezervace, kódy, návrh zprávy.
 - `uklidy.py` – aplikace úklidů (čte `/uklidy`): kódy, stav úklidu, nabídka dřívějšího check-inu; volá hlavní smyčka, `kody`.
 - `instrukce.py` – instrukce k příjezdu ze šablony (přepínač `INSTRUKCE_ZE_SABLONY`), model jen překládá; volá `prace`.
@@ -29,7 +29,7 @@ Znalostní báze = YAML v `znalostni-baze/` (skutečné byty nejsou v gitu). Tes
 - Každá zpráva hosta skončí v jednom stavu: odpovězeno, čeká na schválení, eskalováno, vědomě bez odpovědi. Nikdy se neztratí.
 - Hostovi nic neodejde mimo jednu bránu před odesláním (dnes `navrhy.odeslat`, po kroku P1.4 modul `odchozi.py`).
 - Kódy, Wi-Fi, adresy a časy nikdy nepíše model, doplňuje je kód ze zdroje pravdy.
-- Upozornění hostiteli se nesmí ztratit (po kroku P1.5 jen přes frontu upozornění).
+- Upozornění hostiteli se nesmí ztratit – jen přes `oznameni.posli` (fronta při výpadku Telegramu); u návrhů `navrh_id`.
 - Nová funkce = přepínač v `.env`, výchozí vypnuto, popsaný v `.env.example`.
 - Žádná skutečná data hostů, kódy ani telefonní čísla v testech, příkladech a commitech. Repo je veřejné.
 - Hodnoty z `.env` nikdy nečti ani nevypisuj, jen názvy proměnných (např. `grep -c '^SMOOBU_API_SECRET=.' .env`).
@@ -47,7 +47,7 @@ Znalostní báze = YAML v `znalostni-baze/` (skutečné byty nejsou v gitu). Tes
 - `tests/conftest.py` zakazuje síť a nastavuje smyšlené klíče – test nikdy nesmí sáhnout na Smoobu, Telegram ani Claude.
 - Fixture `svet`: FakeSmoobu / FakeTelegram / FakeModel (`tests/nahrazky.py`), smyšlený byt, hodiny zmrazené na
   po 2. 11. 2026 9:00; `svet.cyklus()` = celý `jeden_cyklus`. Čas nikdy přes `datetime.now()`, vždy `hodiny.ted()`.
-- Známé chyby = `xfail(strict=True)` v `tests/test_zname_chyby.py`; po opravě značku odstranit.
+- Známé chyby = `xfail(strict=True)`; po opravě značku odstranit. Nový přepínač nastav i v `tests/conftest.py`.
 - Nikdy nespouštěj `python -m agent spustit` lokálně, když běží server (dva agenti = dvojí zprávy).
 - Na GitHub nesmí: `.env`, `data/`, skutečné byty v `znalostni-baze/apartmany/`, `poznamky-k-hostum.yaml`.
 

@@ -198,7 +198,7 @@ def _spust(db, nazev, vstup):
         hlavicka = prace._hlavicka(r)
         navrh_id = db.novy_navrh(r["id"], "", vstup["text"], r.get("language") or "", hlavicka)
         db.uprav_navrh(navrh_id, tg_message_id=oznameni.posli(
-            f"✍️ NÁVRH ZPRÁVY (z pokynu hostitele)\n{hlavicka}\n\n{vstup['text']}", TLACITKA_NAVRHU(navrh_id)))
+            f"✍️ NÁVRH ZPRÁVY (z pokynu hostitele)\n{hlavicka}\n\n{vstup['text']}", TLACITKA_NAVRHU(navrh_id), navrh_id=navrh_id))
         return f"Návrh {navrh_id} je ve skupině ke schválení."
     if nazev == "nastav_rezim":
         db.uloz_nastaveni("rezim", vstup["rezim"])

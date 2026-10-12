@@ -246,7 +246,7 @@ def zkontroluj(smoobu, db):
     if not zapnuto():
         return
     for smoobu_id in {p["smoobu_id"] for p in pobyty()}:
-        _prevezmi_kod(db, smoobu_id)
+        _prevezmi_kod(db, smoobu_id, smoobu)
     _hlidej_prijezdy(smoobu, db)
     _nabidni_drivejsi_checkin(smoobu, db)
 
@@ -284,10 +284,10 @@ def _nabidni_drivejsi_checkin(smoobu, db):
         navrh_id = db.novy_navrh(r["id"], zpravy[-1].get("id") if zpravy else "", text, jazyk, hlavicka)
         db.uprav_navrh(navrh_id, tg_message_id=oznameni.posli(
             f"🧹✅ BYT JE UKLIZENÝ DŘÍV – nabídnout hostovi dřívější check-in?\n{hlavicka}\n\n{text}",
-            navrhy.TLACITKA_NAVRHU(navrh_id)))
+            navrhy.TLACITKA_NAVRHU(navrh_id), navrh_id=navrh_id))
 
 
-def _prevezmi_kod(db, smoobu_id):
+def _prevezmi_kod(db, smoobu_id, smoobu=None):
     kod, datum = _posledni_z_aplikace(smoobu_id)
     ulozeny_kod, ulozeny_datum = _ulozeny(db, smoobu_id)
     if not kod or (kod, datum) == (ulozeny_kod, ulozeny_datum) or datum < ulozeny_datum:
@@ -304,6 +304,45 @@ def _prevezmi_kod(db, smoobu_id):
         oznameni.posli(f"🔑 {nazev}: v aplikaci úklidů je u úklidu {datum} nový kód keyboxu {kod} "
                        f"(dosud {predtim or '?'}). Agent od teď posílá hostům {kod}.")
         zneplatni_instrukce(db, smoobu_id)
+        if smoobu is not None:
+            _oprav_odeslane_instrukce(smoobu, db, smoobu_id, predtim, kod, datum)
+
+
+def _oprav_odeslane_instrukce(smoobu, db, smoobu_id, stary, novy, datum_uklidu):
+    """Varianta B (DECISIONS.md D3): hosté, kteří přijíždějí po tomto úklidu a instrukce se starým kódem už dostali,
+    dostanou opravu s novým kódem – stejnou cestou jako instrukce (automaticky / ke schválení)."""
+    from . import instrukce, navrhy, prace  # prace → kody → uklidy: import až za běhu
+    if not stary:
+        return
+    dnes = hodiny.dnes()
+    for r in smoobu.reservations(kontext._datum(datum_uklidu), dnes + timedelta(days=1)):
+        odjezd = kontext._datum(r.get("departure"))
+        if (str((r.get("apartment") or {}).get("id")) != str(smoobu_id) or r.get("is-blocked-booking")
+                or (odjezd and odjezd <= dnes) or db.nastaveni(f"oprava_kodu_{r['id']}") == novy):
+            continue
+        nase = [m.get("message") or "" for m in smoobu.messages(r["id"]) if m.get("type") != 1]
+        if not any(stary in t for t in nase) or any(novy in t for t in nase):
+            continue  # instrukce se starým kódem nedostal, nebo už nový kód má
+        text, jazyk, poznamka = instrukce.oprava_kodu(r, novy)
+        hlavicka = prace._hlavicka(r)
+        navrh_id = db.novy_navrh(r["id"], "", text, jazyk, hlavicka)
+        db.uloz_nastaveni(f"oprava_kodu_{r['id']}", novy)
+        db.zapis(r["id"], "instrukce_prijezd", {"kod": novy, "smoobu_id": str(smoobu_id), "oprava_z": stary,
+                                               "jazyk_hosta": jazyk})
+        if poznamka:
+            oznameni.posli(f"ℹ️ {poznamka}\n{hlavicka}")
+        if config.PRIJEZDY_AUTOMATICKY:
+            try:
+                _, vysledek = navrhy.odeslat(smoobu, db, db.navrh(navrh_id), "automaticky")
+            except Exception as e:
+                db.uprav_navrh(navrh_id, stav="selhalo")
+                vysledek = f"⚠️ NEPODAŘILO se ji odeslat ({str(e)[:150]}) – pošli ji prosím ručně"
+            oznameni.posli(f"🔑 Oprava kódu ({stary} → {novy}) pro hosta s už odeslanými instrukcemi: {vysledek}\n"
+                           f"{hlavicka}\n\n{text}")
+        else:
+            db.uprav_navrh(navrh_id, tg_message_id=oznameni.posli(
+                f"🔑 OPRAVA KÓDU KEYBOXU ({stary} → {novy}) – host už má instrukce se starým kódem, ke schválení\n"
+                f"{hlavicka}\n\n{text}", navrhy.TLACITKA_NAVRHU(navrh_id), navrh_id=navrh_id))
 
 
 def _hlidej_prijezdy(smoobu, db):

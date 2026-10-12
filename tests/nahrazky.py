@@ -4,7 +4,7 @@ import re
 
 import requests
 
-from agent import mozek, oznameni, telegram_ovladani
+from agent import config, hodiny, mozek, oznameni, telegram_ovladani
 from agent.smoobu import SmoobuLimit, SmoobuOvereni
 
 
@@ -35,7 +35,8 @@ class FakeSmoobu:
 
     def _zprava(self, rid, typ, text):
         self._dalsi_id += 1
-        m = {"id": self._dalsi_id, "type": typ, "message": text, "createdAt": f"2026-01-01 00:{self._dalsi_id % 60:02d}"}
+        m = {"id": self._dalsi_id, "type": typ, "message": text,
+             "createdAt": hodiny.ted().strftime("%Y-%m-%d %H:%M:%S")}
         self.konverzace.setdefault(str(rid), []).append(m)
         return m
 
@@ -87,14 +88,16 @@ class FakeSmoobu:
 
 
 class FakeTelegram:
-    """Zachytává oznameni.posli (text, tlačítka); umí simulovat kliknutí a výpadek Telegramu."""
+    """Zachytává odesílání do Telegramu (text, tlačítka); umí simulovat kliknutí a výpadek Telegramu.
+    Nahrazuje jen nejnižší úroveň (oznameni._posli_ted) – fronta upozornění v oznameni.posli se tak testuje skutečně."""
 
     CHAT = -100
 
     def __init__(self, monkeypatch):
         self.zpravy = []
         self.vypadek = False
-        monkeypatch.setattr(oznameni, "posli", self.posli)
+        monkeypatch.setattr(config, "TELEGRAM_BOT_TOKEN", "test")
+        monkeypatch.setattr(oznameni, "_posli_ted", self.posli)
         monkeypatch.setattr(oznameni, "odeber_tlacitka", lambda *a, **k: None)
         monkeypatch.setattr(oznameni, "potvrd_kliknuti", lambda *a, **k: None)
         monkeypatch.setattr(oznameni, "akce_psani", lambda *a, **k: None)

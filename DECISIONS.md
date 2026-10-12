@@ -25,3 +25,11 @@ Možnosti: A) doplnit přepínače, výchozí vypnuto, a na serveru je zapnout v
 B) nechat jak je a pravidlo platí jen pro nové funkce.
 
 Výsledek: _čeká na rozhodnutí_
+
+## D3 – Kód keyboxu pro hosta, před jehož příjezdem ještě neproběhl úklid (rozhodnuto 12. 10. 2026)
+Instrukce se připravují večer předem / odcházejí v 10:00, úklid (a případná změna kódu) bývá až kolem poledne.
+Možnosti: A) poslat instrukce až po odkliknutí úklidu (kód vždy správný, ale později);
+B) poslat v 10:00 s aktuálním kódem a když se po úklidu kód změní, poslat hostovi opravu.
+
+Výsledek: **B** – instrukce v 10:00 jako dosud; po změně kódu v aplikaci úklidů agent pošle hostům, kteří instrukce se
+starým kódem už dostali, opravu s novým kódem (stejnou cestou jako instrukce – automaticky / ke schválení).

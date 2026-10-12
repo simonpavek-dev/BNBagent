@@ -46,6 +46,13 @@ class Databaze:
                 text TEXT,
                 cas TEXT
             );
+            CREATE TABLE IF NOT EXISTS fronta_upozorneni (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                text TEXT,
+                tlacitka TEXT,          -- JSON [[popisek, callback], ...]
+                navrh_id INTEGER,       -- po doručení se k návrhu zapíše tg_message_id
+                cas TEXT
+            );
             CREATE TABLE IF NOT EXISTS nastaveni (
                 klic TEXT PRIMARY KEY,
                 hodnota TEXT
@@ -118,14 +125,14 @@ class Databaze:
 
     def navrh(self, navrh_id):
         row = self.conn.execute(
-            "SELECT id, reservation_id, message_id, text, jazyk, hlavicka, stav, tg_message_id, odeslat_po "
+            "SELECT id, reservation_id, message_id, text, jazyk, hlavicka, stav, tg_message_id, odeslat_po, cas "
             "FROM navrhy WHERE id = ?",
             (navrh_id,),
         ).fetchone()
         if not row:
             return None
         return dict(zip(["id", "reservation_id", "message_id", "text", "jazyk", "hlavicka", "stav", "tg_message_id",
-                         "odeslat_po"], row))
+                         "odeslat_po", "cas"], row))
 
     def uprav_navrh(self, navrh_id, **hodnoty):
         for sloupec, hodnota in hodnoty.items():

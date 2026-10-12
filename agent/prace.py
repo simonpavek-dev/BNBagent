@@ -32,11 +32,28 @@ def aktivni_rezervace(smoobu):
     return out
 
 
-def _cekajici_zprava(zpravy):
-    """Poslední zpráva od hosta, pokud je v konverzaci poslední (tj. nikdo na ni ještě neodpověděl)."""
+def _cekajici_zprava(zpravy, db=None, od=None):
+    """Zpráva hosta, na kterou se má odpovědět: poslední zpráva konverzace, pokud je od hosta – nebo nejnovější zpráva
+    hosta, za kterou jsou už jen naše zprávy (typicky automatická zpráva Smoobu), pokud ji agent ještě nezpracoval
+    a přišla po `od` (nasazení této opravy – staré, dávno vyřízené dotazy se nevytahují)."""
     if zpravy and zpravy[-1].get("type") == 1:
         return zpravy[-1]
+    if db is None or not od:
+        return None
+    posledni_hosta = next((m for m in reversed(zpravy) if m.get("type") == 1), None)
+    if (posledni_hosta and str(posledni_hosta.get("createdAt") or "") >= od
+            and not db.zprava_vyrizena(posledni_hosta["id"])):
+        return posledni_hosta
     return None
+
+
+def _hranice_nevyrizenych(db):
+    """Od kdy hledat zprávy hosta přebité naší (automatickou) zprávou – nastaví se při prvním běhu opravy."""
+    od = db.nastaveni("cekajici_od")
+    if not od:
+        od = hodiny.ted().strftime("%Y-%m-%d %H:%M:%S")
+        db.uloz_nastaveni("cekajici_od", od)
+    return od
 
 
 def inicializace(smoobu, db):
@@ -55,9 +72,10 @@ def inicializace(smoobu, db):
 
 
 def vyrid_zpravy(smoobu, db):
+    od = _hranice_nevyrizenych(db)
     for r in aktivni_rezervace(smoobu):
         zpravy = smoobu.messages(r["id"])
-        zprava = _cekajici_zprava(zpravy)
+        zprava = _cekajici_zprava(zpravy, db, od)
         if not zprava or db.zprava_vyrizena(zprava["id"]):
             continue
         try:
@@ -160,7 +178,7 @@ def _upozorni(db, r, zprava, v, odeslano):
         )
         tlacitka = [("✅ Odeslat", f"odeslat:{navrh_id}"), ("✏️ Upravit", f"upravit:{navrh_id}"),
                     ("❌ Neposílat", f"zahodit:{navrh_id}")]
-    db.uprav_navrh(navrh_id, tg_message_id=oznameni.posli(text, tlacitka))
+    db.uprav_navrh(navrh_id, tg_message_id=oznameni.posli(text, tlacitka, navrh_id=navrh_id))
 
 
 # ---------------------------------------------------------------- kontrola kalendáře
@@ -276,7 +294,7 @@ def priprav_prijezdy(smoobu, db, den=None):
                     db.uprav_navrh(navrh_id, tg_message_id=oznameni.posli(
                         f"🔑 INSTRUKCE K PŘÍJEZDU {den.day}. {den.month}. – odešlu je hostovi sám {kdy(odeslat_po)} "
                         f"(kód {kod})\n{_hlavicka(r)}\n\n{v['zprava']}",
-                        [("❌ Zrušit odeslání", f"zahodit:{navrh_id}")]))
+                        [("❌ Zrušit odeslání", f"zahodit:{navrh_id}")], navrh_id=navrh_id))
                 else:
                     try:
                         _, zprava = odeslat(smoobu, db, db.navrh(navrh_id), "automaticky")
@@ -290,7 +308,7 @@ def priprav_prijezdy(smoobu, db, den=None):
             db.uprav_navrh(navrh_id, tg_message_id=oznameni.posli(
                 f"🔑 INSTRUKCE K PŘÍJEZDU {den.day}. {den.month}. – kód keyboxu {kod} ({planek})\n"
                 f"{_hlavicka(r)}\n\n{v['zprava']}",
-                TLACITKA_NAVRHU(navrh_id, odeslat_po)))
+                TLACITKA_NAVRHU(navrh_id, odeslat_po), navrh_id=navrh_id))
         else:
             oznameni.posli(
                 f"📋 INSTRUKCE K PŘÍJEZDU – ZKOPÍRUJ A POŠLI SÁM (rezervace není napojená na Airbnb/Booking, "

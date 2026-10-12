@@ -82,6 +82,21 @@ def _odjezd(navrh):
     return m.group(1) if m else None
 
 
+def _predbehnuto(zpravy, navrh):
+    """Proč návrh odpovědi už neplatí: host mezitím napsal, nebo někdo odpověděl až PO vzniku návrhu.
+    Naše zprávy z doby před návrhem (např. automatická zpráva Smoobu) ho nezneplatní. Jinak None."""
+    idx = next((i for i, m in enumerate(zpravy) if str(m.get("id")) == navrh["message_id"]), None)
+    if idx is None:
+        return "zpráva hosta, na kterou návrh odpovídá, už v konverzaci není"
+    vznik = str(navrh.get("cas") or "").replace("T", " ")
+    for m in zpravy[idx + 1:]:
+        if m.get("type") == 1:
+            return "host napsal další zprávu"
+        if str(m.get("createdAt") or "") > vznik:
+            return "hostovi už někdo odpověděl"
+    return None
+
+
 def odeslat(smoobu, db, navrh, zdroj, kdo=""):
     """Pošle návrh hostovi. Vrací (ok, zpráva pro hostitele)."""
     if navrh["stav"] not in ("ceka", "schvaleno"):
@@ -96,10 +111,10 @@ def odeslat(smoobu, db, navrh, zdroj, kdo=""):
                            f"z {uz_ma[-1].get('createdAt', '?')}).\n{navrh['hlavicka']}")
     if navrh["message_id"]:  # návrh agenta – nepředbíhá ho nová zpráva?
         zpravy = smoobu.messages(navrh["reservation_id"])
-        if zpravy and str(zpravy[-1].get("id")) != navrh["message_id"]:
+        proc = _predbehnuto(zpravy, navrh)
+        if proc:
             db.uprav_navrh(navrh["id"], stav="zastarale")
             oznameni.odeber_tlacitka(navrh["tg_message_id"])
-            proc = "host napsal další zprávu" if zpravy[-1].get("type") == 1 else "hostovi už někdo odpověděl"
             return False, (f"⚠️ Neodesláno – mezitím {proc}.\n{navrh['hlavicka']}\n"
                            "Agent na novou zprávu hosta připraví nový návrh sám.")
     problem_s_kodem = uklidy.kod_stale_plati(db, navrh)
@@ -130,6 +145,6 @@ def nahradit(db, puvodni, text_hostitele, kdo=""):
     # message_id prázdné = hostitelův vlastní text, před odesláním se nekontroluje, jestli je konverzace aktuální
     novy_id = db.novy_navrh(puvodni["reservation_id"], "", hotovy, puvodni["jazyk"], puvodni["hlavicka"])
     db.uprav_navrh(novy_id, tg_message_id=oznameni.posli(
-        f"👀 KONTROLA PŘED ODESLÁNÍM{_kdo(kdo)}\n{puvodni['hlavicka']}\n\n{hotovy}", TLACITKA_NAVRHU(novy_id)
-    ))
+        f"👀 KONTROLA PŘED ODESLÁNÍM{_kdo(kdo)}\n{puvodni['hlavicka']}\n\n{hotovy}", TLACITKA_NAVRHU(novy_id),
+        navrh_id=novy_id))
     return novy_id

@@ -3,6 +3,12 @@
 Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na konci aktualizovat.
 
 ## Hotovo
+- Opraveny 3 známé chyby (větev `p1-4-zname-chyby`), žádný xfail:
+  1) dotaz hosta za automatickou zprávou Smoobu se zpracuje (jen zprávy po nasazení – `cekajici_od`); návrh zastará,
+     jen když host napsal znovu nebo někdo odpověděl PO vzniku návrhu;
+  2) P1.5 fronta upozornění: `oznameni.posli` při výpadku Telegramu uloží do `fronta_upozorneni`, cyklus doručí
+     (s poznámkou „Zpožděné upozornění“, u návrhů se spáruje tg_message_id → tlačítka fungují);
+  3) varianta B (D3): po změně kódu v aplikaci úklidů dostanou hosté se starým kódem opravu (automaticky / ke schválení).
 - P1.3 zdvořilosti bez modelu (`ZDVORILOSTI_BEZ_MODELU`, výchozí ne): čisté díky/👍/ok → hotová věta v jazyce hosta
   (8 jazyků, před/během/po pobytu); na naše rozloučení se neodpovídá (stav „neodpovidat“) (větev `p1-3-zdvorilosti`).
 - P1.2 levnější model (`LEVNEJSI_MODEL_PRO_JEDNODUCHE`, výchozí ne): `trideni.je_jednoducha` – krátké, bez otázky,
@@ -30,15 +36,12 @@ Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na ko
 - Repo veřejné, historie se nepřepisuje, WhatsApp čísla zůstávají v `obecne.yaml` (`DECISIONS.md` D1).
 
 ## Další
-- Opravit 3 známé chyby z `tests/test_zname_chyby.py`: dotaz hosta přebitý automatickou zprávou Smoobu,
-  ztracená eskalace při výpadku Telegramu (P1.5), kód současného hosta pro zítřejší příjezd.
 - Timeout po úspěšném odeslání nechá návrh „čeká“ → druhé kliknutí pošle zprávu podruhé (test
   `test_timeout_po_odeslani_dnes_necha_navrh_cekat`) – řešit v bráně P1.4.
 - P1.4: jedna brána pro odchozí zprávy hostům → modul `odchozi.py` (dnes `navrhy.odeslat`, ale přímé `send_message` je ještě
   v `prace._vyrid_jednu` pro ostrý režim).
-- P1.5: fronta upozornění hostiteli (dnes `oznameni.posli` přímo; při výpadku Telegramu se upozornění ztratí).
 - Po zapnutí `INSTRUKCE_ZE_SABLONY` na serveru odstranit starou cestu přes model (`mozek.priprav_instrukce_k_prijezdu`).
-- Zprávy hostů: agent řeší jen poslední zprávu v konverzaci – starší neodpovězené (např. z výpadku Smoobu) se můžou ztratit.
+- Zprávy hostů: agent řeší nejnovější nezpracovanou zprávu hosta; víc nezodpovězených dotazů za sebou model vidí v konverzaci.
 - Existující funkce bez přepínače / se zapnutým výchozím stavem (napojení na úklidy, dřívější check-in, kontrola kalendáře)
   sladit s pravidlem „nová funkce = přepínač, výchozí vypnuto“.
 - Simulátor scénářů: základ je fixture `svet` + `svet.cyklus()` + `hodiny.posun()`; rozšířit o scénáře.
