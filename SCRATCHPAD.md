@@ -17,7 +17,7 @@ Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na ko
 - Sokolská: číslo bytu pro hosty (adresa v YAML) a název v aplikaci úklidů (`uklidy_nazev`) se liší – obojí je správně.
 - Podpis „Rentys team“ + WhatsApp Simon a Michael; časy Vojtěšská check-in 15:00, check-out 11:00, ostatní 10:00.
 - Dřívější check-in nabízet jen jako návrh ke schválení, i v ostrém režimu.
-- Repo veřejné (podle zadání) – viz otevřené rozhodnutí v `DECISIONS.md` o citlivých datech v historii.
+- Repo veřejné, historie se nepřepisuje, WhatsApp čísla zůstávají v `obecne.yaml` (`DECISIONS.md` D1).
 
 ## Další
 - Opravit 3 známé chyby z `tests/test_zname_chyby.py`: dotaz hosta přebitý automatickou zprávou Smoobu,
@@ -33,7 +33,6 @@ Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na ko
   sladit s pravidlem „nová funkce = přepínač, výchozí vypnuto“.
 - Simulátor scénářů: základ je fixture `svet` + `svet.cyklus()` + `hodiny.posun()`; rozšířit o scénáře.
 - `server/nahrat-na-server.sh`: výpis `kontrola | head -6` uřízne řádek „Smoobu HMAC“ → zvětšit.
-- WhatsApp čísla jsou v `znalostni-baze/obecne.yaml` (veřejné repo) → viz `DECISIONS.md`.
 
 ## Zaseknuté
-- Citlivá data ve veřejném repu (telefonní čísla, jméno hosta v historii) – čeká na rozhodnutí hostitele (`DECISIONS.md`).
+- `DECISIONS.md` D2 (přepínače u existujících funkcí) – čeká na rozhodnutí hostitele.
