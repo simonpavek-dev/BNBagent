@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 import yaml
 
-from . import config, hodiny, instrukce, kody, kontext, mozek, oznameni, uklidy, znalosti
+from . import config, hodiny, instrukce, kody, kontext, mozek, oznameni, trideni, uklidy, znalosti
 from .databaze import Databaze
 from .smoobu import Smoobu
 
@@ -99,8 +99,11 @@ def _vyrid_jednu(smoobu, db, r, zpravy, zprava):
         log.exception("Nepodařilo se dopočítat kód keyboxu pro rezervaci %s", r.get("id"))
         kod = None  # agent pak kód neprozradí a případně eskaluje
     doplnek = "\n\n".join(x for x in (popis_kodu(kod), uklidy.popis_pro_zpravu(r)) if x)
+    model = None  # None = hlavní model (config.MODEL)
+    if config.LEVNEJSI_MODEL_PRO_JEDNODUCHE and trideni.je_jednoducha(trideni.nevyrizeny_text(zpravy)):
+        model = config.MODEL_JEDNODUCHE
     vysledek = mozek.rozhodni_o_zprave(
-        znalosti.obecne_text(), apartman_text, kontext.sestav(r, zpravy, doplnek)
+        znalosti.obecne_text(), apartman_text, kontext.sestav(r, zpravy, doplnek), model=model
     )
     rozhodnuti = vysledek["rozhodnuti"]
     db.zapis(r["id"], "rozhodnuti", dict(vysledek, hlavicka=_hlavicka(r), zprava_hosta=zprava.get("message", "")))

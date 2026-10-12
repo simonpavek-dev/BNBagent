@@ -35,6 +35,9 @@ PRIJEZD_ODESLAT_HODINA = int(os.getenv("PRIJEZD_ODESLAT_HODINA", "10"))
 # odpovědi na zprávy hostů se dál řídí REZIM
 KONTROLA_KALENDARE_HODIN = float(os.getenv("KONTROLA_KALENDARE_HODIN", "1"))  # jak často hlídat dvojí rezervace
 # ano = instrukce k příjezdu skládá kód ze šablony (kódy, Wi-Fi, časy ze zdroje pravdy), model jen překládá
+# ano = jednoduché zprávy hostů (díky, ok, čas příjezdu – trideni.je_jednoducha) vyřizuje levnější MODEL_JEDNODUCHE
+LEVNEJSI_MODEL_PRO_JEDNODUCHE = os.getenv("LEVNEJSI_MODEL_PRO_JEDNODUCHE", "ne").strip().lower() == "ano"
+MODEL_JEDNODUCHE = os.getenv("MODEL_JEDNODUCHE", "claude-sonnet-5").strip()
 INSTRUKCE_ZE_SABLONY = os.getenv("INSTRUKCE_ZE_SABLONY", "ne").strip().lower() == "ano"
 PRIJEZDY_AUTOMATICKY = os.getenv("PRIJEZDY_AUTOMATICKY", "ne").strip().lower() == "ano"
 

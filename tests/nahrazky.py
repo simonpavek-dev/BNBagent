@@ -130,8 +130,8 @@ class FakeModel:
         monkeypatch.setattr(mozek, "_zavolej", self._zavolej)
         monkeypatch.setattr(mozek, "priprav_zpravu_hostitele", lambda text, jazyk: f"[{jazyk}] {text}")
 
-    def _zavolej(self, instrukce, obecne_text, apartman_text, kontext, schema, nastroje=None, ucel=""):
-        self.volani.append({"ucel": ucel, "kontext": kontext})
+    def _zavolej(self, instrukce, obecne_text, apartman_text, kontext, schema, nastroje=None, ucel="", model=None):
+        self.volani.append({"ucel": ucel, "kontext": kontext, "model": model})
         odpoved = self.odpovedi[ucel]
         return odpoved(kontext) if callable(odpoved) else dict(odpoved)
 

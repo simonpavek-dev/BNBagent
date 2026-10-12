@@ -91,10 +91,10 @@ CENY = {  # $ za 1M tokenů: vstup, výstup, zápis do cache, čtení z cache
 CENA_HLEDANI = 0.01  # $ za jedno hledání na webu
 
 
-def zapis_naklady(response, ucel):
+def zapis_naklady(response, ucel, model=None):
     """Připíše cenu volání do data/naklady.jsonl (pro dashboard)."""
     u = response.usage
-    vstup, vystup, zapis, cteni = CENY.get(config.MODEL, CENY["claude-opus-5"])
+    vstup, vystup, zapis, cteni = CENY.get(model or config.MODEL, CENY["claude-opus-5"])
     hledani = getattr(getattr(u, "server_tool_use", None), "web_search_requests", 0) or 0
     cena = ((u.input_tokens or 0) * vstup + (u.output_tokens or 0) * vystup
             + (u.cache_creation_input_tokens or 0) * zapis + (u.cache_read_input_tokens or 0) * cteni) / 1e6
@@ -134,7 +134,8 @@ def _spust_nastroj(blok):
         return {"type": "tool_result", "tool_use_id": blok.id, "content": f"Chyba: {e}", "is_error": True}
 
 
-def _zavolej(instrukce, obecne_text, apartman_text, kontext, schema, nastroje=None, ucel=""):
+def _zavolej(instrukce, obecne_text, apartman_text, kontext, schema, nastroje=None, ucel="", model=None):
+    model = model or config.MODEL  # levnější model jen pro jednoduché zprávy (trideni.je_jednoducha)
     # Stálé části (instrukce + znalostní báze) jsou na začátku a cachují se,
     # proměnlivé údaje (datum, rezervace, konverzace) jdou až do zprávy.
     system = [
@@ -148,7 +149,7 @@ def _zavolej(instrukce, obecne_text, apartman_text, kontext, schema, nastroje=No
     ]
     messages = [{"role": "user", "content": kontext}]
     params = dict(
-        model=config.MODEL,
+        model=model,
         max_tokens=16000,
         system=system,
         output_config={"format": {"type": "json_schema", "schema": schema}},
@@ -157,7 +158,7 @@ def _zavolej(instrukce, obecne_text, apartman_text, kontext, schema, nastroje=No
         params["tools"] = nastroje
 
     for _ in range(MAX_KOL):
-        if config.MODEL == "claude-opus-5":
+        if model == "claude-opus-5":
             # Když model požadavek odmítne, API ho samo zkusí na záložním modelu.
             response = client().beta.messages.create(
                 betas=["server-side-fallback-2026-07-01"], fallbacks="default", messages=messages, **params
@@ -167,7 +168,7 @@ def _zavolej(instrukce, obecne_text, apartman_text, kontext, schema, nastroje=No
         log.info("Claude usage: in=%s out=%s cache_w=%s cache_r=%s", response.usage.input_tokens,
                  response.usage.output_tokens, response.usage.cache_creation_input_tokens,
                  response.usage.cache_read_input_tokens)
-        zapis_naklady(response, ucel)
+        zapis_naklady(response, ucel, model)
 
         if response.stop_reason == "tool_use":
             messages.append({"role": "assistant", "content": response.content})
@@ -191,8 +192,9 @@ def _zavolej(instrukce, obecne_text, apartman_text, kontext, schema, nastroje=No
     return json.loads(text)
 
 
-def rozhodni_o_zprave(obecne_text, apartman_text, kontext):
-    return _zavolej(INSTRUKCE_ZPRAVY, obecne_text, apartman_text, kontext, SCHEMA_ZPRAVY, NASTROJE_ZPRAVY, "zpráva hosta")
+def rozhodni_o_zprave(obecne_text, apartman_text, kontext, model=None):
+    return _zavolej(INSTRUKCE_ZPRAVY, obecne_text, apartman_text, kontext, SCHEMA_ZPRAVY, NASTROJE_ZPRAVY, "zpráva hosta",
+                    model=model)
 
 
 INSTRUKCE_PRIJEZD = """Jsi asistent hostitele krátkodobých pronájmů. Hostovi, který dnes přijíždí, připravuješ zprávu s instrukcemi ke check-inu.
