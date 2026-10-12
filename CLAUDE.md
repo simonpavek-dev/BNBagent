@@ -31,7 +31,7 @@ Znalostní báze = YAML v `znalostni-baze/` (skutečné byty nejsou v gitu). Tes
 - Hostovi nic neodejde mimo bránu `odchozi.odeslat` (přes `navrhy.odeslat`); hlídá to test `test_jen_brana_posila_zpravy_hostum`.
 - Kódy, Wi-Fi, adresy a časy nikdy nepíše model, doplňuje je kód ze zdroje pravdy.
 - Upozornění hostiteli se nesmí ztratit – jen přes `oznameni.posli` (fronta při výpadku Telegramu); u návrhů `navrh_id`.
-- Nová funkce = přepínač v `.env`, výchozí vypnuto, popsaný v `.env.example`.
+- Nová funkce = přepínač v `.env`, výchozí vypnuto, popsaný v `.env.example`, přidaný do `PREPINACE` v `tests/test_prepinace.py`.
 - Žádná skutečná data hostů, kódy ani telefonní čísla v testech, příkladech a commitech. Repo je veřejné.
 - Hodnoty z `.env` nikdy nečti ani nevypisuj, jen názvy proměnných (např. `grep -c '^SMOOBU_API_SECRET=.' .env`).
 

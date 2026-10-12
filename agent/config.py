@@ -25,7 +25,7 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
 # "ostre" = agent odpovídá hostům sám
 REZIM = os.getenv("REZIM", "navrh").strip().lower()
 INTERVAL_MINUT = int(os.getenv("INTERVAL_MINUT", "3"))
-HODNOCENI_HOSTU = os.getenv("HODNOCENI_HOSTU", "ano").strip().lower() == "ano"
+HODNOCENI_HOSTU = os.getenv("HODNOCENI_HOSTU", "ne").strip().lower() == "ano"
 HODNOCENI_HODINA = int(os.getenv("HODNOCENI_HODINA", "11"))  # kdy denně připravit návrhy hodnocení
 # Instrukce k příjezdu: večer (PRIJEZD_HODINA) se připraví na zítřek ke schválení,
 # schválené se odešlou v den příjezdu v PRIJEZD_ODESLAT_HODINA
@@ -37,6 +37,12 @@ KONTROLA_KALENDARE_HODIN = float(os.getenv("KONTROLA_KALENDARE_HODIN", "1"))  # 
 # ano = instrukce k příjezdu skládá kód ze šablony (kódy, Wi-Fi, časy ze zdroje pravdy), model jen překládá
 # ano = jednoduché zprávy hostů (díky, ok, čas příjezdu – trideni.je_jednoducha) vyřizuje levnější MODEL_JEDNODUCHE
 # ano = čisté zdvořilosti hostů (díky, 👍, ok) vyřídí pravidlo bez modelu (trideni.odpoved_na_zdvorilost)
+# ---- přepínače funkcí (výchozí vypnuto; na serveru zapnuté v .env)
+KONTROLA_KALENDARE = os.getenv("KONTROLA_KALENDARE", "ne").strip().lower() == "ano"        # hodinová kontrola overbookingu
+NABIDKA_DRIVEJSIHO_CHECKINU = os.getenv("NABIDKA_DRIVEJSIHO_CHECKINU", "ne").strip().lower() == "ano"
+HLIDANI_UKLIDU_K_PRIJEZDU = os.getenv("HLIDANI_UKLIDU_K_PRIJEZDU", "ne").strip().lower() == "ano"  # ve 14:00 neuklizeno
+OPRAVA_KODU_PO_UKLIDU = os.getenv("OPRAVA_KODU_PO_UKLIDU", "ne").strip().lower() == "ano"  # D3 varianta B
+CHAT_PRES_TELEGRAM = os.getenv("CHAT_PRES_TELEGRAM", "ne").strip().lower() == "ano"        # „Vasile, …“ ve skupině
 ZDVORILOSTI_BEZ_MODELU = os.getenv("ZDVORILOSTI_BEZ_MODELU", "ne").strip().lower() == "ano"
 LEVNEJSI_MODEL_PRO_JEDNODUCHE = os.getenv("LEVNEJSI_MODEL_PRO_JEDNODUCHE", "ne").strip().lower() == "ano"
 MODEL_JEDNODUCHE = os.getenv("MODEL_JEDNODUCHE", "claude-sonnet-5").strip()

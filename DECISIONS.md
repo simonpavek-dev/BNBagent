@@ -19,12 +19,14 @@ Možnosti:
 Výsledek: **nechat všechno, jak je** – repo zůstává veřejné, historie se nepřepisuje, čísla zůstávají
 v `obecne.yaml`. Nová data hostů do repa dál nesmí (pravidlo v CLAUDE.md).
 
-## D2 – Výchozí stav existujících funkcí vs. pravidlo „nová funkce = přepínač, výchozí vypnuto“ (otevřené)
+## D2 – Výchozí stav existujících funkcí vs. pravidlo „nová funkce = přepínač, výchozí vypnuto“ (rozhodnuto 12. 10. 2026)
 Napojení na aplikaci úklidů, nabídka dřívějšího check-inu a hodinová kontrola kalendáře běží bez vlastního přepínače.
 Možnosti: A) doplnit přepínače, výchozí vypnuto, a na serveru je zapnout v `.env` (chování se nezmění);
 B) nechat jak je a pravidlo platí jen pro nové funkce.
 
-Výsledek: _čeká na rozhodnutí_
+Výsledek: **A** – přepínače KONTROLA_KALENDARE, NABIDKA_DRIVEJSIHO_CHECKINU, HLIDANI_UKLIDU_K_PRIJEZDU,
+OPRAVA_KODU_PO_UKLIDU, CHAT_PRES_TELEGRAM; HODNOCENI_HOSTU výchozí ne. Na serveru všechny zapnuté (chování beze změny).
+Bez přepínače zůstávají bezpečnostní základy: fronta upozornění, brána, převzetí kódu z aplikace úklidů, vyřizování zpráv.
 
 ## D3 – Kód keyboxu pro hosta, před jehož příjezdem ještě neproběhl úklid (rozhodnuto 12. 10. 2026)
 Instrukce se připravují večer předem / odcházejí v 10:00, úklid (a případná změna kódu) bývá až kolem poledne.

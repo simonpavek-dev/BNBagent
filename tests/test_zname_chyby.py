@@ -92,6 +92,7 @@ def test_navrh_doruceny_z_fronty_ma_funkcni_tlacitka(svet):
 
 @pytest.fixture
 def uklidy_zapnute(svet, monkeypatch):
+    monkeypatch.setattr(config, "OPRAVA_KODU_PO_UKLIDU", True, raising=False)
     monkeypatch.setattr(config, "UKLIDY_URL", "https://uklidy.test")
     monkeypatch.setattr(config, "UKLIDY_LOGIN", "test")
     monkeypatch.setattr(config, "UKLIDY_HESLO", "test")

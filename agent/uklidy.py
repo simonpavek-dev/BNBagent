@@ -247,8 +247,10 @@ def zkontroluj(smoobu, db):
         return
     for smoobu_id in {p["smoobu_id"] for p in pobyty()}:
         _prevezmi_kod(db, smoobu_id, smoobu)
-    _hlidej_prijezdy(smoobu, db)
-    _nabidni_drivejsi_checkin(smoobu, db)
+    if config.HLIDANI_UKLIDU_K_PRIJEZDU:
+        _hlidej_prijezdy(smoobu, db)
+    if config.NABIDKA_DRIVEJSIHO_CHECKINU:
+        _nabidni_drivejsi_checkin(smoobu, db)
 
 
 TEXT_DRIVEJSI_CHECKIN = ("Dobrá zpráva! Náš úklidový tým už všechno stihl a byt je pro vás připravený už teď – "
@@ -304,7 +306,7 @@ def _prevezmi_kod(db, smoobu_id, smoobu=None):
         oznameni.posli(f"🔑 {nazev}: v aplikaci úklidů je u úklidu {datum} nový kód keyboxu {kod} "
                        f"(dosud {predtim or '?'}). Agent od teď posílá hostům {kod}.")
         zneplatni_instrukce(db, smoobu_id)
-        if smoobu is not None:
+        if smoobu is not None and config.OPRAVA_KODU_PO_UKLIDU:
             _oprav_odeslane_instrukce(smoobu, db, smoobu_id, predtim, kod, datum)
 
 

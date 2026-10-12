@@ -3,6 +3,8 @@
 Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na konci aktualizovat.
 
 ## Hotovo
+- D2 přepínače (větev `p1-6-prepinace`): KONTROLA_KALENDARE, NABIDKA_DRIVEJSIHO_CHECKINU, HLIDANI_UKLIDU_K_PRIJEZDU,
+  OPRAVA_KODU_PO_UKLIDU, CHAT_PRES_TELEGRAM (výchozí ne), HODNOCENI_HOSTU výchozí ne; test hlídá výchozí stav a .env.example.
 - P1.4 brána `odchozi.py` (větev `p1-5-brana`): jediné `send_message`, tabulka `odchozi` (odesila/odeslano/selhalo/nejiste),
   po timeoutu ověření v konverzaci, nejisté se ověří v dalším cyklu; ostrý režim jde přes návrh a bránu.
 - Opravy 3 chyb nasazeny (12. 10. 19:55), `cekajici_od` nastaveno, žádné staré dotazy se nevytáhly.
@@ -41,10 +43,8 @@ Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na ko
 ## Další
 - Po zapnutí `INSTRUKCE_ZE_SABLONY` na serveru odstranit starou cestu přes model (`mozek.priprav_instrukce_k_prijezdu`).
 - Zprávy hostů: agent řeší nejnovější nezpracovanou zprávu hosta; víc nezodpovězených dotazů za sebou model vidí v konverzaci.
-- Existující funkce bez přepínače / se zapnutým výchozím stavem (napojení na úklidy, dřívější check-in, kontrola kalendáře)
-  sladit s pravidlem „nová funkce = přepínač, výchozí vypnuto“.
 - Simulátor scénářů: základ je fixture `svet` + `svet.cyklus()` + `hodiny.posun()`; rozšířit o scénáře.
 - `server/nahrat-na-server.sh`: výpis `kontrola | head -6` uřízne řádek „Smoobu HMAC“ → zvětšit.
 
 ## Zaseknuté
-- `DECISIONS.md` D2 (přepínače u existujících funkcí) – čeká na rozhodnutí hostitele.
+- (nic)

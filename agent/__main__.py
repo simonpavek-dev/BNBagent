@@ -122,7 +122,8 @@ def jeden_cyklus(smoobu, db):
     _krok(db, "naplánované zprávy", navrhy.odesli_naplanovane, smoobu, db)
     _krok(db, "ověření nejistých odeslání", odchozi.over_nejiste, smoobu, db)
     posledni_kk = db.nastaveni("kontrola_kalendare")
-    if not posledni_kk or ted - datetime.fromisoformat(posledni_kk) > timedelta(hours=config.KONTROLA_KALENDARE_HODIN):
+    if config.KONTROLA_KALENDARE and (
+            not posledni_kk or ted - datetime.fromisoformat(posledni_kk) > timedelta(hours=config.KONTROLA_KALENDARE_HODIN)):
         _krok(db, "kontrola kalendáře", prace.kontrola_kalendare, smoobu, db)  # hlásí jen problémy
     if (config.HODNOCENI_HOSTU and ted.hour >= config.HODNOCENI_HODINA
             and db.nastaveni("hodnoceni_den") != ted.date().isoformat()):

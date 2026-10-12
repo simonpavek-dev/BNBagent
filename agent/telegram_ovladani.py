@@ -105,7 +105,7 @@ def _zprava(db, msg):
         return
     if not upravuje or not text:
         # ve skupině si spolu můžete normálně psát – bot reaguje jen na ✏️ Upravit a na zprávy určené jemu
-        pokyn = _pokyn_pro_vasila(msg, text)
+        pokyn = _pokyn_pro_vasila(msg, text) if config.CHAT_PRES_TELEGRAM else None
         if pokyn:
             oznameni.akce_psani()
             odpoved = spravce.odpovez(db, f"{_jmeno(msg.get('from')) or 'Hostitel'}: {pokyn}")
