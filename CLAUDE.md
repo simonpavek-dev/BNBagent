@@ -1,24 +1,55 @@
-# AI agent pro apartmány (Vasil)
+# Vasil – AI agent pro apartmány (Smoobu → Claude → Telegram)
 
-Python 3.9+, `agent/` = kód, `znalostni-baze/` = YAML pro model, běží na serveru Hetzner (`server/`).
-Komunikace s hostitelem česky, kód a komentáře česky.
+Python 3.9+, kód a komentáře česky. Běží na serveru Hetzner jako služby `airbnb-agent` a `airbnb-panel` (`server/`).
+Znalostní báze = YAML v `znalostni-baze/` (skutečné byty nejsou v gitu). Testy: `.venv/bin/python -m pytest`.
 
-## Postup při změnách kódu
-1. **Nejdřív test**, který chybu/požadavek zachytí (`tests/`, pytest) – musí nejdřív selhat.
-2. Pak oprava.
-3. `.venv/bin/python -m pytest` musí být zelený.
-4. Commit na **vlastní větev** (např. `ps-1-…`), **nepushovat do `main`** a nenasazovat na server bez souhlasu.
+## Mapa modulů (`agent/`)
+- `__main__.py` – příkazy (kontrola, zkouska, spustit…) a hlavní smyčka; spouští ho systemd / `spustit-agenta.command`.
+- `config.py` – nastavení z `.env`; importují ho všechny moduly.
+- `smoobu.py` – klient Smoobu API (jen HMAC, 401/429); instanci dělá `prace.vytvor_smoobu`.
+- `prace.py` – zprávy hostů, instrukce k příjezdu, kontrola kalendáře, hodnocení, upozornění na 401; volá `__main__`.
+- `mozek.py` – volání Claude (rozhodnutí o zprávě, instrukce, hodnocení, překlad); volají `prace`, `navrhy`, `spravce`, `uklidy`.
+- `navrhy.py` – návrhy pro hosty: schválení, plánované odeslání, **brána `odeslat()`**; volají `telegram_ovladani`, `dashboard`, `prace`.
+- `telegram_ovladani.py` – tlačítka a zprávy ze skupiny, „Vasile…“ → `spravce`; volá hlavní smyčka.
+- `oznameni.py` – odesílání a čtení Telegramu (`posli`, tlačítka, getUpdates); volají skoro všechny moduly.
+- `spravce.py` – chat s hostitelem (panel i Telegram) s nástroji: znalostní báze, rezervace, kódy, návrh zprávy.
+- `uklidy.py` – aplikace úklidů (čte `/uklidy`): kódy, stav úklidu, nabídka dřívějšího check-inu; volá hlavní smyčka, `kody`.
+- `kody.py` – platný kód keyboxu pro rezervaci (aplikace úklidů / znalostní báze); volají `prace`, `spravce`.
+- `kontext.py` – text rezervace + konverzace pro model, dnešní datum; volají `prace`, `mozek`, `spravce`.
+- `znalosti.py` – načtení YAML znalostní báze (před modelem skrývá `keybox_kod`); volají `prace`, `uklidy`, `mozek`.
+- `mapy.py` – nástroj `trasa` (OpenStreetMap, pěší trasa); volá `mozek`.
+- `databaze.py` – SQLite: zprávy, návrhy, události, nastavení, chat; používají všechny moduly.
+- `dashboard.py` + `dashboard.html` – ovládací panel na localhost:8765 (zvenku přes SSH tunel).
+- `import_smoobu.py` – předvyplnění znalostní báze a export historie konverzací (příkaz `nacist-smoobu`).
 
-## Tajné údaje
-- `.env` obsahuje klíče (Smoobu, Claude, Telegram, aplikace úklidů). **Hodnoty nikdy nečíst ani nevypisovat** –
-  pracovat jen s názvy proměnných (např. `grep -c '^SMOOBU_API_SECRET=.' .env`).
-- Testy používají jen smyšlené hodnoty.
-- Na GitHub nesmí: `.env`, `data/`, soubory skutečných bytů v `znalostni-baze/apartmany/`, `poznamky-k-hostum.yaml`.
+## Nepřekročitelná pravidla
+- Každá zpráva hosta skončí v jednom stavu: odpovězeno, čeká na schválení, eskalováno, vědomě bez odpovědi. Nikdy se neztratí.
+- Hostovi nic neodejde mimo jednu bránu před odesláním (dnes `navrhy.odeslat`, po kroku P1.4 modul `odchozi.py`).
+- Kódy, Wi-Fi, adresy a časy nikdy nepíše model, doplňuje je kód ze zdroje pravdy.
+- Upozornění hostiteli se nesmí ztratit (po kroku P1.5 jen přes frontu upozornění).
+- Nová funkce = přepínač v `.env`, výchozí vypnuto, popsaný v `.env.example`.
+- Žádná skutečná data hostů, kódy ani telefonní čísla v testech, příkladech a commitech. Repo je veřejné.
+- Hodnoty z `.env` nikdy nečti ani nevypisuj, jen názvy proměnných (např. `grep -c '^SMOOBU_API_SECRET=.' .env`).
+
+## Postup každého úkolu
+1. Přečti `SCRATCHPAD.md` a posledních 10 commitů.
+2. Změna ve víc souborech = nejdřív plán a počkej na schválení.
+3. Nejdřív test, který problém ukáže, a ukaž, že padá.
+4. Oprava, celý pytest zelený, simulátor scénářů zelený (až bude).
+5. Aktualizuj `SCRATCHPAD.md`, `LESSONS_LEARNED.md` (když něco trvalo přes 10 minut), `.env.example` a README.
+6. Commit na větev pojmenovanou podle kroku (např. `p1-4-brana`). Do `main` nepushuj bez souhlasu.
+7. Rozhodnutí, která může udělat jen hostitel, zapiš do `DECISIONS.md` s možnostmi a zastav se.
+
+## Testy a bezpečnost
+- `tests/conftest.py` zakazuje síť a nastavuje smyšlené klíče – test nikdy nesmí sáhnout na Smoobu, Telegram ani Claude.
+- Nikdy nespouštěj `python -m agent spustit` lokálně, když běží server (dva agenti = dvojí zprávy).
+- Na GitHub nesmí: `.env`, `data/`, skutečné byty v `znalostni-baze/apartmany/`, `poznamky-k-hostum.yaml`.
 
 ## Smoobu
-- Jen HMAC ověřování (hlavičky X-API-Key, X-Timestamp, X-Nonce, X-Signature); staré `Api-Key` Smoobu vypíná 31. 10. 2026.
-- Query string pro podpis i URL: RFC 3986, klíče seřazené abecedně (mezera `%20`, `[]` → `%5B%5D`).
-- 429: u GET počkat do `X-RateLimit-Retry-After` (Unix čas) a zopakovat; POST (odeslání zprávy) nikdy neopakovat.
+- Jen HMAC (X-API-Key, X-Timestamp, X-Nonce, X-Signature); staré `Api-Key` Smoobu vypíná 31. 10. 2026.
+- Query string pro podpis i URL: RFC 3986, klíče abecedně (mezera `%20`, `[]` → `%5B%5D`).
+- 429: GET počká do `X-RateLimit-Retry-After` (Unix čas) a zopakuje; POST (odeslání zprávy) nikdy neopakuje.
 
 ## Nasazení
-`server/nahrat-na-server.sh <IP>` – nejdřív stáhne změny znalostní báze provedené přes Telegram, pak nahraje a restartuje.
+`server/nahrat-na-server.sh <IP>` – nejdřív stáhne změny znalostní báze provedené přes Telegram, pak nahraje kód,
+`.env` a znalostní bázi a restartuje služby. Před nasazením počkat, až `cinnost` = „Čekám…“. Po nasazení `kontrola` na serveru.
