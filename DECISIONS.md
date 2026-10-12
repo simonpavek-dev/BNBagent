@@ -2,11 +2,12 @@
 
 Rozhodnutí, která může udělat jen hostitel. Každé s možnostmi; po rozhodnutí doplnit výsledek a datum.
 
-## D1 – Citlivá data ve veřejném repozitáři (otevřené, 12. 10. 2026)
+## D1 – Citlivá data ve veřejném repozitáři (rozhodnuto 12. 10. 2026)
 Repo `simonpavek-dev/BNBagent` je veřejné (při založení bylo soukromé). V repu je:
 - v současném `znalostni-baze/obecne.yaml`: WhatsApp čísla Simona a Michaela (v podpisu a v `nouzove_kontakty`),
 - v historii commitů (`65c9a7a` → smazáno v `6feb0d3`): jméno skutečné hostky v příkladu ve staré specifikaci API.
-Kódy, hesla ani klíče v historii nejsou (prověřeno grepem celé historie).
+- e-mail a jméno autora ve všech commitech, interní ID bytů ve Smoobu a 2 ID rezervací (v historii).
+Kódy, adresy, hesla ani klíče v historii nejsou (prověřeno grepem celé historie).
 
 Možnosti:
 - **A) Repo vrátit na soukromé** (GitHub → Settings → Danger zone → Change visibility). Nejrychlejší, nic se nemaže.
@@ -15,7 +16,8 @@ Možnosti:
   už mohou existovat – čísla by se tím z internetu jistě nesmazala.
 - **C) Nechat veřejné, jen přesunout čísla mimo git** pro budoucnost; historii nechat.
 
-Výsledek: _čeká na rozhodnutí_
+Výsledek: **nechat všechno, jak je** – repo zůstává veřejné, historie se nepřepisuje, čísla zůstávají
+v `obecne.yaml`. Nová data hostů do repa dál nesmí (pravidlo v CLAUDE.md).
 
 ## D2 – Výchozí stav existujících funkcí vs. pravidlo „nová funkce = přepínač, výchozí vypnuto“ (otevřené)
 Napojení na aplikaci úklidů, nabídka dřívějšího check-inu a hodinová kontrola kalendáře běží bez vlastního přepínače.
