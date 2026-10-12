@@ -18,6 +18,7 @@ import time
 from datetime import datetime, timedelta
 
 from . import config, kontext, mozek, navrhy, oznameni, prace, telegram_ovladani, uklidy, znalosti
+from .smoobu import SmoobuOvereni
 
 
 def nastav_log():
@@ -41,8 +42,14 @@ def kontrola(_args):
     ]:
         print(f"  {'✅' if hodnota else '❌'} {nazev}")
         ok = ok and bool(hodnota)
+    print(f"  {'✅' if config.SMOOBU_API_SECRET else '❌'} SMOOBU_API_SECRET")
     if not config.SMOOBU_API_SECRET:
-        print("  ⚠️  SMOOBU_API_SECRET chybí – používá se staré ověřování, které Smoobu vypne 31. 10. 2026")
+        print("     Bez něj agent Smoobu nepoužije – staré ověřování (Api-Key) Smoobu 31. 10. 2026 vypíná.")
+        ok = False
+    elif config.SMOOBU_API_KEY:
+        spojeni_ok, text = prace.vytvor_smoobu().over_pripojeni()  # skutečné volání GET /api/apartments
+        print(f"  {'✅' if spojeni_ok else '❌'} {text}")
+        ok = ok and spojeni_ok
     if config.REZIM not in ("navrh", "ostre"):
         print("  ❌ REZIM musí být 'navrh' nebo 'ostre'")
         ok = False
@@ -90,6 +97,9 @@ def _krok(db, popis, fn, *args):
 
 
 def spustit(_args):
+    if not config.SMOOBU_API_SECRET:
+        sys.exit("❌ Chybí SMOOBU_API_SECRET v .env – agent bez něj nepoběží (staré ověřování Api-Key Smoobu "
+                 "31. 10. 2026 vypíná). Secret vytvoříš ve Smoobu: Settings → Advanced → API Keys → Generate Secret.")
     import fcntl
     zamek = open(config.DATA_DIR / "agent.lock", "w")
     try:
@@ -158,7 +168,7 @@ def spustit(_args):
                 chyby_za_sebou += 1
                 log.exception("Chyba v cyklu agenta")
                 db.zapis("", "chyba", f"Chyba při kontrole zpráv: {e}")
-                if chyby_za_sebou == 5:
+                if chyby_za_sebou == 5 and not isinstance(e, SmoobuOvereni):  # 401 se hlásí hned (prace.upozorni_na_odmitnuti)
                     oznameni.posli(f"⚠️ Agent má opakovaně potíže (např. Smoobu nedostupné): {e}")
         db.uloz_nastaveni("cinnost", "Čekám na nové zprávy hostů")
         # mezi kontrolami Smoobu reaguje na tlačítka a zprávy z Telegramu (okamžitě)

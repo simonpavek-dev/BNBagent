@@ -330,8 +330,19 @@ def navrhni_hodnoceni(smoobu, db):
         )
 
 
+def upozorni_na_odmitnuti(db, chyba):
+    """401 ze Smoobu = hned upozornit hostitele, nejvýš jednou za hodinu."""
+    posledni = db.nastaveni("smoobu_odmitnuti_cas")
+    if posledni and datetime.fromisoformat(posledni) > datetime.now() - timedelta(hours=1):
+        return
+    db.uloz_nastaveni("smoobu_odmitnuti_cas", datetime_ted())
+    db.zapis("", "chyba", str(chyba))
+    oznameni.posli(f"🔐 Smoobu odmítá ověření – agent nečte ani neposílá zprávy.\nDůvod: {str(chyba).split('401: ', 1)[-1]}")
+
+
 def vytvor_smoobu():
-    return Smoobu(config.SMOOBU_API_KEY, config.SMOOBU_API_SECRET)
+    return Smoobu(config.SMOOBU_API_KEY, config.SMOOBU_API_SECRET,
+                  pri_odmitnuti=lambda chyba: upozorni_na_odmitnuti(vytvor_db(), chyba))
 
 
 def vytvor_db():
