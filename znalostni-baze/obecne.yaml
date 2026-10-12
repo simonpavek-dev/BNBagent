@@ -74,22 +74,23 @@ jak_to_u_nas_funguje:
   telefon: "Telefon/WhatsApp hostům dávej jen tak, jak je v podpisu (Simon a Michael). Jiná čísla nikdy."
   zavady: "Nefunkční vybavení (fén, spotřebiče, topení…) vždy eskalovat, hostovi slíbit jen, že se na to díváme a dáme vědět."
 
-# Rámec zprávy s instrukcemi k příjezdu – stejný pro všechny byty. Agent dosadí proměnné v <…> ze souboru bytu
-# (adresa, kódy, postup do bytu, Wi-Fi, check-out) a do jazyka hosta ho přeloží, jen když host nepíše anglicky.
+# Rámec zprávy s instrukcemi k příjezdu – stejný pro všechny byty. Místa {…} vyplní agent ze zdroje pravdy
+# (jméno hosta, adresa_en, nazev_budovy, check-in, postup do bytu s kódy, Wi-Fi, check-out, odjezd.postup_en, podpis).
+# Text mezi nimi můžeš upravit; složené závorky {} používej jen pro tato místa.
 sablona_zpravy_k_prijezdu: |
-  Hi <jméno hosta>,
+  Hi {jmeno},
 
-  welcome to Prague! Here are your check-in details for <adresa> (<název budovy, pokud je>). Self check-in is possible from <check_in_od>, a late arrival is no problem.
+  welcome to Prague! Here are your check-in details for {adresa}{budova}. Self check-in is possible from {check_in}, a late arrival is no problem.
 
-  <postup do bytu: u bytu s prijezd.zprava_k_prijezdu doslova tento text s dosazenými kódy, jinak kroky z prijezd.postup s kódy>
+  {postup}
 
-  Wi-Fi: network <wifi.sit> / password <wifi.heslo>
+  Wi-Fi: network {wifi_sit} / password {wifi_heslo}
 
-  Check-out is by <odjezd.check_out_do> - <odjezd.postup v angličtině>
+  Check-out is by {check_out} - {odjezd_postup}
 
   If you need anything during your stay, just message us anytime.
 
-  <podpis>
+  {podpis}
 
 # Cesty po Praze (agent je ověřuje na mapách)
 trasy:

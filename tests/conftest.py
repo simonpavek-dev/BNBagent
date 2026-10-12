@@ -29,26 +29,43 @@ def bez_skutecnych_sluzeb(monkeypatch, tmp_path):
 # ---------------------------------------------------------------- simulovaný svět pro testy cyklu
 
 OBECNE = """hostitel:
-  podpis: "Test team"
+  podpis: |
+    Test team
+    WhatsApp: +000 000 000 000
 vzdy_eskalovat:
   - Slevy
+sablona_zpravy_k_prijezdu: |
+  Hi {jmeno},
+
+  welcome to Prague! Here are your check-in details for {adresa}{budova}. Self check-in is possible from {check_in}.
+
+  {postup}
+
+  Wi-Fi: network {wifi_sit} / password {wifi_heslo}
+
+  Check-out is by {check_out} - {odjezd_postup}
+
+  {podpis}
 """
 
 BYT = """smoobu_id: "100"
 nazev: "Testbyt"
 uklidy_nazev: "Testbyt 1"
-adresa: "Testovací 1, Praha"
+adresa: "Testovací 1, Praha, byt č. 7"
+adresa_en: "Testovací 1, Prague, apartment no. 7"
 prijezd:
   check_in_od: "15:00"
   postup: "Keybox vlevo od dveří."
+  postup_en: "The keybox is to the left of the door. Keybox code: [KÓD BYTU]"
   kod_vchod: ""
   keybox_kod: "{kod}"
   keybox_kod_overeno: "{overeno}"
   kody_sdelit_nejdrive_dni_pred_prijezdem: 0
 odjezd:
   check_out_do: "10:00"
+  postup_en: "please put the keys back into the keybox."
 wifi:
-  sit: "TestNet"
+  sit: "{wifi_sit}"
   heslo: "test-heslo"
 """
 
@@ -83,8 +100,8 @@ class Svet:
         self.db = Databaze()
         monkeypatch.setattr(prace, "vytvor_smoobu", lambda: self.smoobu)
 
-    def nastav_kod(self, kod, overeno):
-        self.byt_soubor.write_text(BYT.format(kod=kod, overeno=overeno), encoding="utf-8")
+    def nastav_kod(self, kod, overeno, wifi_sit="TestNet"):
+        self.byt_soubor.write_text(BYT.format(kod=kod, overeno=overeno, wifi_sit=wifi_sit), encoding="utf-8")
 
     def cyklus(self):
         """Jeden celý průchod agenta (__main__.jeden_cyklus) nad náhražkami."""

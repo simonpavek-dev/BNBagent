@@ -70,6 +70,12 @@ Na zprávy z doby před spuštěním agent neodpovídá, ty vyřídíš sám. Ne
 ### 7. Ostrý provoz
 Když jsou návrhy dobré, přepni v `.env` na `REZIM=ostre` a agenta restartuj (Ctrl+C a znovu `spustit`).
 
+## Instrukce k příjezdu ze šablony
+S `INSTRUKCE_ZE_SABLONY=ano` skládá zprávu k příjezdu kód podle rámce `sablona_zpravy_k_prijezdu` v `obecne.yaml`:
+kódy, Wi-Fi, adresu (`adresa_en`), postup (`postup_en` / `zprava_k_prijezdu`) a časy dosadí ze zdroje pravdy.
+Anglicky mluvící host ji dostane bez modelu; jiným ji model přeloží a agent ověří, že v překladu zůstaly všechny
+kódy a časy (jinak pošle anglickou verzi).
+
 ## Ovládání přes Telegram
 Ve skupině stačí Vasila oslovit – zpráva začínající „Vasile“ (nebo zmínka @bota či odpověď na jeho zprávu):
 - „Vasile, jaké kódy teď posíláš?“ · „Vasile, kdo přijíždí tento týden?“ · „Vasile, jak je na tom Petrská s úklidem?“

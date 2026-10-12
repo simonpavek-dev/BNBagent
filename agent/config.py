@@ -34,6 +34,8 @@ PRIJEZD_ODESLAT_HODINA = int(os.getenv("PRIJEZD_ODESLAT_HODINA", "10"))
 # ano = instrukce k příjezdu se v PRIJEZD_ODESLAT_HODINA odešlou samy (bez schválení, jde je jen zrušit);
 # odpovědi na zprávy hostů se dál řídí REZIM
 KONTROLA_KALENDARE_HODIN = float(os.getenv("KONTROLA_KALENDARE_HODIN", "1"))  # jak často hlídat dvojí rezervace
+# ano = instrukce k příjezdu skládá kód ze šablony (kódy, Wi-Fi, časy ze zdroje pravdy), model jen překládá
+INSTRUKCE_ZE_SABLONY = os.getenv("INSTRUKCE_ZE_SABLONY", "ne").strip().lower() == "ano"
 PRIJEZDY_AUTOMATICKY = os.getenv("PRIJEZDY_AUTOMATICKY", "ne").strip().lower() == "ano"
 
 # Aplikace úklidů (uklid.kolbl-apartments.cz) – účet agenta; prázdné = napojení vypnuté

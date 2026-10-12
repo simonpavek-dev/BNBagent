@@ -3,6 +3,8 @@
 Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na konci aktualizovat.
 
 ## Hotovo
+- P1.1 instrukce ze šablony (`INSTRUKCE_ZE_SABLONY`, výchozí ne): kódy/Wi-Fi/časy dosazuje kód, model jen překládá
+  a překlad se ověřuje (jinak anglicky); u všech 6 bytů doplněno `adresa_en`, `postup_en`, `odjezd.postup_en` (větev `p1-1-instrukce-sablona`).
 - Smoobu jen přes HMAC, RFC 3986, 401 → okamžité upozornění, 429 jen u GET (`23243ce`, nasazeno na server, `kontrola` = OK).
 - Odolnost smyčky: neúspěšné naplánované odeslání jen 1×, chyba v jednom kroku nezastaví ostatní (`97fb936`).
 - Instrukce k příjezdu: před odesláním kontrola konverzace (už poslané → neposílat), po skončení pobytu neposílat (`6bcd822`).
@@ -27,7 +29,8 @@ Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na ko
 - P1.4: jedna brána pro odchozí zprávy hostům → modul `odchozi.py` (dnes `navrhy.odeslat`, ale přímé `send_message` je ještě
   v `prace._vyrid_jednu` pro ostrý režim).
 - P1.5: fronta upozornění hostiteli (dnes `oznameni.posli` přímo; při výpadku Telegramu se upozornění ztratí).
-- Kódy, Wi-Fi, adresy a časy dnes do instrukcí píše model podle YAML → přesunout do kódu (šablona + dosazení ze zdroje pravdy).
+- Po zapnutí `INSTRUKCE_ZE_SABLONY` na serveru odstranit starou cestu přes model (`mozek.priprav_instrukce_k_prijezdu`).
+- P1.2 levnější model na jednoduché zprávy, P1.3 zdvořilosti bez modelu (schválené v plánu).
 - Zprávy hostů: agent řeší jen poslední zprávu v konverzaci – starší neodpovězené (např. z výpadku Smoobu) se můžou ztratit.
 - Existující funkce bez přepínače / se zapnutým výchozím stavem (napojení na úklidy, dřívější check-in, kontrola kalendáře)
   sladit s pravidlem „nová funkce = přepínač, výchozí vypnuto“.

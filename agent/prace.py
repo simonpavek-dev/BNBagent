@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 import yaml
 
-from . import config, hodiny, kody, kontext, mozek, oznameni, uklidy, znalosti
+from . import config, hodiny, instrukce, kody, kontext, mozek, oznameni, uklidy, znalosti
 from .databaze import Databaze
 from .smoobu import Smoobu
 
@@ -239,8 +239,11 @@ def priprav_prijezdy(smoobu, db, den=None):
                 doplnek += (f"\n\nTuto zprávu připravuješ předem: hostitel ji schválí dnes a hostovi se odešle až v den "
                             f"příjezdu ({den.day}. {den.month}.) v {config.PRIJEZD_ODESLAT_HODINA}:00. Napiš ji tak, jako by "
                             "už byl den příjezdu, a kvůli dnešnímu datu ji nezamítej.")
-            v = mozek.priprav_instrukce_k_prijezdu(
-                znalosti.obecne_text(), apartman_text, kontext.sestav(r, zpravy, doplnek))
+            if config.INSTRUKCE_ZE_SABLONY:  # kódy, Wi-Fi a časy dosadí kód, model jen překládá
+                v = instrukce.priprav(apartman, r, kod, zpravy)
+            else:
+                v = mozek.priprav_instrukce_k_prijezdu(
+                    znalosti.obecne_text(), apartman_text, kontext.sestav(r, zpravy, doplnek))
         except uklidy.UklidyChyba as e:  # výpadek aplikace úklidů hlásí hlavní smyčka jednou denně
             log.warning("Instrukce k příjezdu pro %s počkají, kód nejde ověřit: %s", r.get("id"), e)
             continue
@@ -254,6 +257,8 @@ def priprav_prijezdy(smoobu, db, den=None):
         if not v["poslat"]:
             oznameni.posli(f"ℹ️ Instrukce k příjezdu neposílám: {v['duvod']}\n{_hlavicka(r)}")
             continue
+        if v.get("poznamka"):
+            oznameni.posli(f"ℹ️ {v['poznamka']}\n{_hlavicka(r)}")
         kanal = (r.get("channel") or {}).get("name", "").lower()
         if any(k in kanal for k in KANALY_SE_ZPRAVAMI):
             navrh_id = db.novy_navrh(r["id"], "", v["zprava"], v["jazyk_hosta"], _hlavicka(r), odeslat_po)
