@@ -22,3 +22,69 @@ def bez_skutecnych_sluzeb(monkeypatch, tmp_path):
     monkeypatch.setattr(requests.Session, "request", zadna_sit)
     monkeypatch.setattr(requests, "post", zadna_sit)
     monkeypatch.setattr(requests, "get", zadna_sit)
+
+
+# ---------------------------------------------------------------- simulovaný svět pro testy cyklu
+
+OBECNE = """hostitel:
+  podpis: "Test team"
+vzdy_eskalovat:
+  - Slevy
+"""
+
+BYT = """smoobu_id: "100"
+nazev: "Testbyt"
+uklidy_nazev: "Testbyt 1"
+adresa: "Testovací 1, Praha"
+prijezd:
+  check_in_od: "15:00"
+  postup: "Keybox vlevo od dveří."
+  kod_vchod: ""
+  keybox_kod: "{kod}"
+  keybox_kod_overeno: "{overeno}"
+  kody_sdelit_nejdrive_dni_pred_prijezdem: 0
+odjezd:
+  check_out_do: "10:00"
+wifi:
+  sit: "TestNet"
+  heslo: "test-heslo"
+"""
+
+
+class Svet:
+    def __init__(self, monkeypatch, tmp_path):
+        from agent import prace, znalosti
+        from agent.databaze import Databaze
+        from nahrazky import FakeModel, FakeSmoobu, FakeTelegram
+
+        kb = tmp_path / "znalostni-baze"
+        (kb / "apartmany").mkdir(parents=True)
+        (kb / "obecne.yaml").write_text(OBECNE, encoding="utf-8")
+        self.byt_soubor = kb / "apartmany" / "testbyt.yaml"
+        self.nastav_kod("1111", "2026-01-01")
+        monkeypatch.setattr(config, "ZNALOSTI_DIR", kb)
+        monkeypatch.setattr(znalosti, "APARTMANY_DIR", kb / "apartmany")
+        monkeypatch.setattr(prace, "POZNAMKY_PATH", tmp_path / "poznamky.yaml")
+        monkeypatch.setattr(config, "TELEGRAM_CHAT_ID", str(FakeTelegram.CHAT))
+        monkeypatch.setattr(config, "REZIM", "navrh")
+        monkeypatch.setattr(config, "PRIJEZDY_AUTOMATICKY", False)
+        monkeypatch.setattr(config, "HODNOCENI_HOSTU", False)
+
+        self.smoobu = FakeSmoobu()
+        self.telegram = FakeTelegram(monkeypatch)
+        self.model = FakeModel(monkeypatch)
+        self.db = Databaze()
+        monkeypatch.setattr(prace, "vytvor_smoobu", lambda: self.smoobu)
+
+    def nastav_kod(self, kod, overeno):
+        self.byt_soubor.write_text(BYT.format(kod=kod, overeno=overeno), encoding="utf-8")
+
+    def cyklus(self):
+        """Jeden průchod agenta (zatím jen vyřízení zpráv; po refaktoru celý __main__.jeden_cyklus)."""
+        from agent import prace
+        prace.vyrid_zpravy(self.smoobu, self.db)
+
+
+@pytest.fixture
+def svet(monkeypatch, tmp_path):
+    return Svet(monkeypatch, tmp_path)

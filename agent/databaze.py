@@ -7,8 +7,9 @@ from . import config
 
 
 class Databaze:
-    def __init__(self, path=config.DB_PATH):
-        self.conn = sqlite3.connect(str(path), timeout=15)
+    def __init__(self, path=None):
+        # cesta se čte až teď, ne při importu – testy ji tak můžou přesměrovat do dočasné složky
+        self.conn = sqlite3.connect(str(path or config.DB_PATH), timeout=15)
         self.conn.executescript("""
             CREATE TABLE IF NOT EXISTS zpravy (
                 message_id TEXT PRIMARY KEY,
