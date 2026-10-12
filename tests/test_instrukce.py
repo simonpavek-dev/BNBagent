@@ -28,7 +28,7 @@ def test_anglicky_host_bez_modelu_a_s_presnymi_udaji(sablona):
     text = _prijezd(sablona)
     assert [v for v in sablona.model.volani if v["ucel"] in ("instrukce k příjezdu", "překlad instrukcí")] == []
     assert text.startswith("Hi Anna,")
-    for udaj in ("Testovací 1, Prague, apartment no. 7", "from 15:00", "Keybox code: 1111",
+    for udaj in ("Testovací 1, Praha 9, apartment no. 7", "from 15:00", "Keybox code: 1111",
                  "network TestNet / password test-heslo", "Check-out is by 10:00", "Test team", "+000 000 000 000"):
         assert udaj in text, udaj
     assert "[KÓD" not in text and "{" not in text
@@ -38,8 +38,21 @@ def test_jiny_jazyk_model_jen_preklada(sablona):
     sablona.model.odpovedi["překlad instrukcí"] = lambda kontext: {"zprava": "Hallo Anna! " + kontext}
     text = _prijezd(sablona, jazyk="de")
     [preklad] = [v for v in sablona.model.volani if v["ucel"] == "překlad instrukcí"]
-    assert "Keybox code: 1111" in preklad["kontext"]   # model dostal hotovou anglickou zprávu
+    # adresu, název a heslo Wi-Fi ani kódy model vůbec nevidí – dostane místo nich značky
+    for chraneno in ("Testovací 1, Praha 9", "TestNet", "test-heslo", "1111"):
+        assert chraneno not in preklad["kontext"], chraneno
+    assert "⟦" in preklad["kontext"]
     assert text.startswith("Hallo Anna!")
+    for udaj in ("Testovací 1, Praha 9", "network TestNet / password test-heslo", "Keybox code: 1111"):
+        assert udaj in text, udaj   # po překladu se vrátí přesně v původním znění
+
+
+def test_preklad_ktery_zmeni_adresu_nebo_wifi_se_nepouzije(sablona):
+    # model „přeloží“ značky (adresu a Wi-Fi) – agent to pozná a pošle anglickou verzi
+    sablona.model.odpovedi["překlad instrukcí"] = lambda kontext: {
+        "zprava": "Hallo Anna! " + __import__("re").sub(r"⟦\d+⟧", "Prag", kontext, count=1)}
+    text = _prijezd(sablona, jazyk="de")
+    assert text.startswith("Hi Anna,") and "Testovací 1, Praha 9" in text
 
 
 def test_preklad_ktery_vynecha_kod_se_nepouzije(sablona):

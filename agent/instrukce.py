@@ -2,8 +2,9 @@
 
 Kódy, Wi-Fi, adresu a časy dosazuje kód ze zdroje pravdy (aplikace úklidů / znalostní báze), nikdy model.
 Rámec zprávy je v znalostni-baze/obecne.yaml (sablona_zpravy_k_prijezdu, místa {…}). Anglicky mluvící host
-dostane zprávu bez modelu; ostatním ji model jen přeloží a kód ověří, že v překladu zůstaly všechny klíčové údaje
-– jinak se pošle anglická verze.
+dostane zprávu bez modelu; ostatním ji model jen přeloží. Adresu, název a heslo Wi-Fi a kódy model vůbec nevidí: před překladem je kód nahradí značkami
+⟦1⟧, ⟦2⟧… a po překladu je vrátí v přesném původním znění. Když značka nebo klíčový údaj v překladu chybí,
+pošle se anglická verze.
 """
 from . import mozek, znalosti
 
@@ -19,6 +20,13 @@ def _jazyk(rezervace):
     return str(rezervace.get("language") or "en").strip().lower()
 
 
+def _adresa(apartman):
+    """(celá adresa do zprávy, přesná část, která se nikdy nepřekládá)."""
+    presna = str(apartman.get("adresa_presna") or apartman.get("adresa") or "").strip()
+    doplnek = str(apartman.get("adresa_doplnek_en") or "").strip()
+    return (f"{presna}, {doplnek}" if presna and doplnek else presna), presna
+
+
 def sestav(apartman, rezervace, kod):
     """Anglická zpráva z rámce. Vrací (text, chybějící údaje, klíčové údaje k ověření překladu)."""
     obecne = znalosti.obecne()
@@ -27,7 +35,7 @@ def sestav(apartman, rezervace, kod):
     kod_vchod = str(prijezd.get("kod_vchod") or "").strip()
     hodnoty = {
         "jmeno": _jmeno(rezervace),
-        "adresa": str(apartman.get("adresa_en") or apartman.get("adresa") or "").strip(),
+        "adresa": _adresa(apartman)[0],
         "budova": f" ({apartman['nazev_budovy']})" if apartman.get("nazev_budovy") else "",
         "check_in": str(prijezd.get("check_in_od") or "").strip(),
         "postup": postup.replace("[KÓD DOMU]", kod_vchod).replace("[KÓD BYTU]", kod or ""),
@@ -46,9 +54,29 @@ def sestav(apartman, rezervace, kod):
     if "[KÓD DOMU]" in postup and not kod_vchod:
         chybi.append("kód od domu (kod_vchod)")
     text = str(obecne.get("sablona_zpravy_k_prijezdu") or "").strip().format(**hodnoty)
-    klicove = [h for h in (kod, kod_vchod if "[KÓD DOMU]" in postup else "", hodnoty["wifi_sit"], hodnoty["wifi_heslo"],
-                           hodnoty["check_in"], hodnoty["check_out"]) if h]
-    return text, chybi, klicove
+    chranene = [h for h in (_adresa(apartman)[1], hodnoty["wifi_sit"], hodnoty["wifi_heslo"], kod,
+                            kod_vchod if "[KÓD DOMU]" in postup else "") if h]
+    klicove = chranene + [h for h in (hodnoty["check_in"], hodnoty["check_out"]) if h]
+    return text, chybi, klicove, chranene
+
+
+def _schovej(text, chranene):
+    """Nahradí chráněné údaje značkami ⟦1⟧, ⟦2⟧… (nejdelší první, aby se kratší neschoval uvnitř delšího)."""
+    znacky = {}
+    for i, hodnota in enumerate(sorted(set(chranene), key=len, reverse=True), 1):
+        znacka = f"⟦{i}⟧"
+        text = text.replace(hodnota, znacka)
+        znacky[znacka] = hodnota
+    return text, znacky
+
+
+def _vrat(text, znacky):
+    """Vrátí původní údaje za značky; None, když některá značka v překladu chybí nebo je změněná."""
+    if any(z not in text for z in znacky):
+        return None
+    for znacka, hodnota in znacky.items():
+        text = text.replace(znacka, hodnota)
+    return None if "⟦" in text else text  # cizí / pozměněná značka
 
 
 def priprav(apartman, rezervace, kod, zpravy):
@@ -57,14 +85,15 @@ def priprav(apartman, rezervace, kod, zpravy):
     if kod and any(m.get("type") != 1 and kod in (m.get("message") or "") for m in zpravy):
         return {"poslat": False, "zprava": "", "jazyk_hosta": jazyk, "poznamka": "",
                 "duvod": f"host už instrukce s kódem {kod} v konverzaci má"}
-    text, chybi, klicove = sestav(apartman, rezervace, kod)
+    text, chybi, klicove, chranene = sestav(apartman, rezervace, kod)
     if chybi:
         return {"poslat": False, "zprava": text, "jazyk_hosta": jazyk, "poznamka": "",
                 "duvod": "ve znalostní bázi chybí: " + ", ".join(chybi)}
     if jazyk in ANGLICTINA:
         return {"poslat": True, "zprava": text, "jazyk_hosta": "en", "duvod": "", "poznamka": ""}
-    preklad = mozek.preloz_instrukce(text, jazyk)
-    chybi_v_prekladu = [h for h in klicove if h not in preklad]
+    schovany, znacky = _schovej(text, chranene)
+    preklad = _vrat(mozek.preloz_instrukce(schovany, jazyk), znacky) or ""
+    chybi_v_prekladu = [h for h in klicove if h not in preklad] if preklad else ["adresa / Wi-Fi / kódy (značky)"]
     if chybi_v_prekladu:
         return {"poslat": True, "zprava": text, "jazyk_hosta": "en", "duvod": "",
                 "poznamka": f"Překlad do jazyka hosta ({jazyk}) vynechal nebo změnil údaje {', '.join(chybi_v_prekladu)} "

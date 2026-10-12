@@ -221,8 +221,9 @@ def priprav_instrukce_k_prijezdu(obecne_text, apartman_text, kontext):
 
 
 INSTRUKCE_PREKLAD = """Přelož zprávu s instrukcemi k příjezdu do jazyka hosta. Překládej věrně větu po větě, nic nepřidávej
-ani nevynechávej. Čísla, kódy, časy, názvy Wi-Fi sítí, hesla, adresy, telefonní čísla, šipky a emoji opiš PŘESNĚ beze změny
-(ani mezery uvnitř kódů). Podpis „Rentys team“ nepřekládej. Vrať jen přeloženou zprávu."""
+ani nevynechávej. Značky ⟦1⟧, ⟦2⟧… zastupují adresu, Wi-Fi a kódy – každou opiš PŘESNĚ jednou na stejné místo,
+nic do nich nepiš ani je nepřekládej. Časy, telefonní čísla, šipky a emoji opiš beze změny. Podpis „Rentys team“
+nepřekládej. Vrať jen přeloženou zprávu."""
 
 SCHEMA_PREKLAD = {"type": "object", "properties": {"zprava": {"type": "string"}},
                   "required": ["zprava"], "additionalProperties": False}

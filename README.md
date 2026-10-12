@@ -72,9 +72,9 @@ Když jsou návrhy dobré, přepni v `.env` na `REZIM=ostre` a agenta restartuj 
 
 ## Instrukce k příjezdu ze šablony
 S `INSTRUKCE_ZE_SABLONY=ano` skládá zprávu k příjezdu kód podle rámce `sablona_zpravy_k_prijezdu` v `obecne.yaml`:
-kódy, Wi-Fi, adresu (`adresa_en`), postup (`postup_en` / `zprava_k_prijezdu`) a časy dosadí ze zdroje pravdy.
-Anglicky mluvící host ji dostane bez modelu; jiným ji model přeloží a agent ověří, že v překladu zůstaly všechny
-kódy a časy (jinak pošle anglickou verzi).
+kódy, Wi-Fi, adresu (`adresa_presna` – nikdy se nepřekládá, + `adresa_doplnek_en`), postup (`postup_en` / `zprava_k_prijezdu`) a časy dosadí ze zdroje pravdy.
+Anglicky mluvící host ji dostane bez modelu; jiným ji model přeloží. Adresu, název a heslo Wi-Fi a kódy model vůbec
+nevidí (dostane místo nich značky ⟦1⟧…) – po překladu se vrátí v přesném původním znění; když značka chybí, jde anglická verze.
 
 ## Ovládání přes Telegram
 Ve skupině stačí Vasila oslovit – zpráva začínající „Vasile“ (nebo zmínka @bota či odpověď na jeho zprávu):
