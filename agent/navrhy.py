@@ -1,11 +1,13 @@
 """Akce s návrhy odpovědí – společné pro Telegram i dashboard."""
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import logging
+import re
 
 from . import mozek, oznameni, uklidy
 
 log = logging.getLogger("agent")
+PROSLE_PO_HODINACH = 3  # naplánovanou zprávu starší než tohle už neposílat
 
 
 def kdy(odeslat_po):
@@ -44,6 +46,19 @@ def odesli_naplanovane(smoobu, db):
     for (navrh_id,) in db.conn.execute(
             "SELECT id FROM navrhy WHERE stav = 'schvaleno' AND odeslat_po <= ?", (ted,)).fetchall():
         navrh = db.navrh(navrh_id)
+        instrukce = _je_instrukce(db, navrh)
+        if instrukce and _odjezd(navrh) and _odjezd(navrh) <= datetime.now().date().isoformat():
+            db.uprav_navrh(navrh_id, stav="zastarale")
+            oznameni.odeber_tlacitka(navrh["tg_message_id"])
+            oznameni.posli(f"⏰ Instrukce k příjezdu jsem NEODESLAL – pobyt už skončil.\n{navrh['hlavicka']}")
+            continue
+        if not instrukce and datetime.fromisoformat(navrh["odeslat_po"]) < datetime.now() - timedelta(hours=PROSLE_PO_HODINACH):
+            # zpráva měla odejít dávno (agent neběžel, Smoobu bylo nedostupné…) – pozdě ji hostovi neposílat
+            db.uprav_navrh(navrh_id, stav="zastarale")
+            oznameni.odeber_tlacitka(navrh["tg_message_id"])
+            oznameni.posli(f"⏰ Naplánovanou zprávu na {kdy(navrh['odeslat_po'])} jsem NEODESLAL – je na ni už pozdě. "
+                           f"Jestli ji host pořád potřebuje, pošli ji prosím ručně.\n{navrh['hlavicka']}")
+            continue
         try:
             _, zprava = odeslat(smoobu, db, navrh, "planovace")
         except Exception as e:  # neopakovat donekonečna – jednou zkusit, pak předat hostitelům
@@ -56,10 +71,29 @@ def odesli_naplanovane(smoobu, db):
         oznameni.posli(zprava)
 
 
+def _je_instrukce(db, navrh):
+    """Je návrh instrukce k příjezdu s kódem? Vrací kód z instrukcí, nebo None."""
+    kod = uklidy._instrukce(db, navrh["reservation_id"]).get("kod")
+    return kod if kod and kod in (navrh["text"] or "") else None
+
+
+def _odjezd(navrh):
+    m = re.search(r"→ (\d{4}-\d{2}-\d{2})", navrh.get("hlavicka") or "")
+    return m.group(1) if m else None
+
+
 def odeslat(smoobu, db, navrh, zdroj, kdo=""):
     """Pošle návrh hostovi. Vrací (ok, zpráva pro hostitele)."""
     if navrh["stav"] not in ("ceka", "schvaleno"):
         return False, "Tenhle návrh už je vyřízený."
+    kod = _je_instrukce(db, navrh)
+    if kod:  # instrukce k příjezdu: nejdřív zkontrolovat konverzaci, jestli je host už nedostal (třeba ručně)
+        uz_ma = [m for m in smoobu.messages(navrh["reservation_id"]) if m.get("type") != 1 and kod in (m.get("message") or "")]
+        if uz_ma:
+            db.uprav_navrh(navrh["id"], stav="zastarale")
+            oznameni.odeber_tlacitka(navrh["tg_message_id"])
+            return False, (f"ℹ️ Instrukce k příjezdu jsem neposlal – host je už má (zpráva s kódem {kod} "
+                           f"z {uz_ma[-1].get('createdAt', '?')}).\n{navrh['hlavicka']}")
     if navrh["message_id"]:  # návrh agenta – nepředbíhá ho nová zpráva?
         zpravy = smoobu.messages(navrh["reservation_id"])
         if zpravy and str(zpravy[-1].get("id")) != navrh["message_id"]:
