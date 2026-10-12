@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import logging
 import re
 
-from . import hodiny, mozek, oznameni, uklidy
+from . import hodiny, mozek, odchozi, oznameni, uklidy
 
 log = logging.getLogger("agent")
 PROSLE_PO_HODINACH = 3  # naplánovanou zprávu starší než tohle už neposílat
@@ -121,7 +121,15 @@ def odeslat(smoobu, db, navrh, zdroj, kdo=""):
     if problem_s_kodem:
         oznameni.odeber_tlacitka(navrh["tg_message_id"])
         return False, f"⚠️ Neodesláno – {problem_s_kodem}\n{navrh['hlavicka']}"
-    smoobu.send_message(navrh["reservation_id"], navrh["text"])
+    vysledek = odchozi.odeslat(smoobu, db, navrh["reservation_id"], navrh["text"], zdroj, navrh_id=navrh["id"])
+    if vysledek == "selhalo":  # timeout a zpráva v konverzaci není – ověřeně neodešla, jde poslat znovu
+        return False, (f"⚠️ Neodesláno – Smoobu neodpovědělo a zpráva v konverzaci není. Zkus ✅ znovu.\n"
+                       f"{navrh['hlavicka']}")
+    if vysledek == "nejiste":
+        db.uprav_navrh(navrh["id"], stav="nejiste")
+        oznameni.odeber_tlacitka(navrh["tg_message_id"])
+        return False, (f"⚠️ Nevím, jestli zpráva odešla – Smoobu neodpovědělo a konverzaci teď nejde přečíst. "
+                       f"Ověřím to v dalším cyklu, zatím ji znovu neposílej.\n{navrh['hlavicka']}")
     db.uprav_navrh(navrh["id"], stav="odeslano")
     db.zapis(navrh["reservation_id"], f"odeslano_z_{zdroj}", navrh["text"])
     if kdo:

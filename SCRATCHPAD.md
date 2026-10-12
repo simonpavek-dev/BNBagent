@@ -3,6 +3,9 @@
 Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na konci aktualizovat.
 
 ## Hotovo
+- P1.4 brána `odchozi.py` (větev `p1-5-brana`): jediné `send_message`, tabulka `odchozi` (odesila/odeslano/selhalo/nejiste),
+  po timeoutu ověření v konverzaci, nejisté se ověří v dalším cyklu; ostrý režim jde přes návrh a bránu.
+- Opravy 3 chyb nasazeny (12. 10. 19:55), `cekajici_od` nastaveno, žádné staré dotazy se nevytáhly.
 - Opraveny 3 známé chyby (větev `p1-4-zname-chyby`), žádný xfail:
   1) dotaz hosta za automatickou zprávou Smoobu se zpracuje (jen zprávy po nasazení – `cekajici_od`); návrh zastará,
      jen když host napsal znovu nebo někdo odpověděl PO vzniku návrhu;
@@ -36,10 +39,6 @@ Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na ko
 - Repo veřejné, historie se nepřepisuje, WhatsApp čísla zůstávají v `obecne.yaml` (`DECISIONS.md` D1).
 
 ## Další
-- Timeout po úspěšném odeslání nechá návrh „čeká“ → druhé kliknutí pošle zprávu podruhé (test
-  `test_timeout_po_odeslani_dnes_necha_navrh_cekat`) – řešit v bráně P1.4.
-- P1.4: jedna brána pro odchozí zprávy hostům → modul `odchozi.py` (dnes `navrhy.odeslat`, ale přímé `send_message` je ještě
-  v `prace._vyrid_jednu` pro ostrý režim).
 - Po zapnutí `INSTRUKCE_ZE_SABLONY` na serveru odstranit starou cestu přes model (`mozek.priprav_instrukce_k_prijezdu`).
 - Zprávy hostů: agent řeší nejnovější nezpracovanou zprávu hosta; víc nezodpovězených dotazů za sebou model vidí v konverzaci.
 - Existující funkce bez přepínače / se zapnutým výchozím stavem (napojení na úklidy, dřívější check-in, kontrola kalendáře)

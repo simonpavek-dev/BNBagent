@@ -132,9 +132,13 @@ def _vyrid_jednu(smoobu, db, r, zpravy, zprava):
     odeslano = False
 
     if rezim(db) == "ostre" and rozhodnuti in ("odpovedet", "eskalovat") and vysledek["odpoved_hostovi"].strip():
-        smoobu.send_message(r["id"], vysledek["odpoved_hostovi"])
-        db.zapis(r["id"], "odeslano", vysledek["odpoved_hostovi"])
-        odeslano = True
+        from .navrhy import odeslat
+        navrh_id = db.novy_navrh(r["id"], zprava.get("id"), vysledek["odpoved_hostovi"], vysledek["jazyk_hosta"],
+                                 _hlavicka(r))
+        odeslano, zprava_brany = odeslat(smoobu, db, db.navrh(navrh_id), "automaticky")  # jediná brána
+        if not odeslano:
+            db.uprav_navrh(navrh_id, stav="zastarale")
+            log.warning("Ostrý režim – neodesláno: %s", zprava_brany)
 
     db.oznac_zpravu(zprava["id"], r["id"], rozhodnuti)
     _upozorni(db, r, zprava, vysledek, odeslano)

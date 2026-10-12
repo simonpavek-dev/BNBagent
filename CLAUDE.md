@@ -10,7 +10,8 @@ Znalostní báze = YAML v `znalostni-baze/` (skutečné byty nejsou v gitu). Tes
 - `smoobu.py` – klient Smoobu API (jen HMAC, 401/429); instanci dělá `prace.vytvor_smoobu`.
 - `prace.py` – zprávy hostů, instrukce k příjezdu, kontrola kalendáře, hodnocení, upozornění na 401; volá `__main__`.
 - `mozek.py` – volání Claude (rozhodnutí o zprávě, instrukce, hodnocení, překlad); volají `prace`, `navrhy`, `spravce`, `uklidy`.
-- `navrhy.py` – návrhy pro hosty: schválení, plánované odeslání, **brána `odeslat()`**; volají `telegram_ovladani`, `dashboard`, `prace`.
+- `navrhy.py` – návrhy pro hosty: schválení, plánované odeslání, kontroly před odesláním (`odeslat()`).
+- `odchozi.py` – **brána**: jediné místo s `smoobu.send_message`; po timeoutu ověří konverzaci (žádné dvojí odeslání).
 - `telegram_ovladani.py` – tlačítka a zprávy ze skupiny, „Vasile…“ → `spravce`; volá hlavní smyčka.
 - `oznameni.py` – Telegram: `posli` (při výpadku do fronty, `dorucit_frontu` v cyklu), tlačítka, getUpdates.
 - `spravce.py` – chat s hostitelem (panel i Telegram) s nástroji: znalostní báze, rezervace, kódy, návrh zprávy.
@@ -27,7 +28,7 @@ Znalostní báze = YAML v `znalostni-baze/` (skutečné byty nejsou v gitu). Tes
 
 ## Nepřekročitelná pravidla
 - Každá zpráva hosta skončí v jednom stavu: odpovězeno, čeká na schválení, eskalováno, vědomě bez odpovědi. Nikdy se neztratí.
-- Hostovi nic neodejde mimo jednu bránu před odesláním (dnes `navrhy.odeslat`, po kroku P1.4 modul `odchozi.py`).
+- Hostovi nic neodejde mimo bránu `odchozi.odeslat` (přes `navrhy.odeslat`); hlídá to test `test_jen_brana_posila_zpravy_hostum`.
 - Kódy, Wi-Fi, adresy a časy nikdy nepíše model, doplňuje je kód ze zdroje pravdy.
 - Upozornění hostiteli se nesmí ztratit – jen přes `oznameni.posli` (fronta při výpadku Telegramu); u návrhů `navrh_id`.
 - Nová funkce = přepínač v `.env`, výchozí vypnuto, popsaný v `.env.example`.

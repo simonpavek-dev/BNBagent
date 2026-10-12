@@ -17,7 +17,7 @@ import sys
 import time
 from datetime import datetime, timedelta
 
-from . import config, hodiny, kontext, mozek, navrhy, oznameni, prace, telegram_ovladani, uklidy, znalosti
+from . import config, hodiny, kontext, mozek, navrhy, odchozi, oznameni, prace, telegram_ovladani, uklidy, znalosti
 from .smoobu import SmoobuOvereni
 
 
@@ -120,6 +120,7 @@ def jeden_cyklus(smoobu, db):
     except Exception:
         log.exception("Chyba v kontrole úklidů")
     _krok(db, "naplánované zprávy", navrhy.odesli_naplanovane, smoobu, db)
+    _krok(db, "ověření nejistých odeslání", odchozi.over_nejiste, smoobu, db)
     posledni_kk = db.nastaveni("kontrola_kalendare")
     if not posledni_kk or ted - datetime.fromisoformat(posledni_kk) > timedelta(hours=config.KONTROLA_KALENDARE_HODIN):
         _krok(db, "kontrola kalendáře", prace.kontrola_kalendare, smoobu, db)  # hlásí jen problémy

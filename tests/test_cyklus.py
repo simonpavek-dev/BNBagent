@@ -67,22 +67,6 @@ def test_401_pri_cteni_hned_upozorni_hostitele(svet):
     assert any("Smoobu odmítá ověření" in z["text"] for z in svet.telegram.zpravy)
 
 
-def test_timeout_po_odeslani_dnes_necha_navrh_cekat(svet):
-    """Charakterizace dnešního chování: zpráva odejde, klient dostane timeout a návrh zůstane „čeká“
-    (opakované kliknutí by ji poslalo podruhé – kandidát na opravu v kroku brány P1.4)."""
-    import pytest
-    import requests
-    _rezervace_s_dotazem(svet)
-    svet.model.odpovez(text="Parking is on the street.")
-    svet.cyklus()
-    navrh_id = svet.telegram.navrh_id()
-    svet.smoobu.porucha = "timeout_po_odeslani"
-    with pytest.raises(requests.Timeout):
-        svet.telegram.klikni(svet.smoobu, svet.db, "odeslat", navrh_id)
-    assert len(svet.smoobu.odeslane) == 1
-    assert svet.db.navrh(navrh_id)["stav"] == "ceka"
-
-
 def test_naplanovane_instrukce_odejdou_az_v_10(svet, monkeypatch):
     """Hodiny: v 9:00 se instrukce po schválení jen naplánují, odejdou až v cyklu po 10:00."""
     from agent import config

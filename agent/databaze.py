@@ -46,6 +46,17 @@ class Databaze:
                 text TEXT,
                 cas TEXT
             );
+            CREATE TABLE IF NOT EXISTS odchozi (       -- brána pro zprávy hostům (odchozi.py)
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                navrh_id INTEGER,
+                reservation_id TEXT,
+                text TEXT,
+                zdroj TEXT,
+                stav TEXT,              -- odesila / odeslano / selhalo / nejiste
+                chyba TEXT,
+                cas TEXT,
+                zmena TEXT
+            );
             CREATE TABLE IF NOT EXISTS fronta_upozorneni (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 text TEXT,

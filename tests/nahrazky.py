@@ -11,8 +11,10 @@ from agent.smoobu import SmoobuLimit, SmoobuOvereni
 class FakeSmoobu:
     """Rezervace a konverzace v paměti. Zprávy: type 1 = host, type 2 = my (i automatické zprávy Smoobu).
 
-    porucha: None | "timeout_po_odeslani" (zpráva odejde, ale klient dostane timeout) | "401" | "429".
-    Porucha platí pro odesílání; porucha_cteni totéž pro čtení (rezervace, zprávy)."""
+    porucha: None | "timeout_po_odeslani" (zpráva odejde, ale klient dostane timeout)
+             | "timeout_bez_odeslani" (zpráva neodejde, klient dostane timeout) | "401" | "429".
+    Porucha platí pro odesílání; porucha_cteni totéž pro čtení (rezervace, zprávy);
+    cteni_po_odeslani = porucha čtení, která nastane až po odeslání zprávy (např. "401")."""
 
     def __init__(self):
         self.rezervace = {}
@@ -20,6 +22,7 @@ class FakeSmoobu:
         self.odeslane = []
         self.porucha = None
         self.porucha_cteni = None
+        self.cteni_po_odeslani = None
         self.pri_odmitnuti = None
         self._dalsi_id = 1000
 
@@ -72,8 +75,12 @@ class FakeSmoobu:
 
     def send_message(self, rid, text):
         self._selhani(self.porucha, "POST send-message-to-guest")
+        if self.porucha == "timeout_bez_odeslani":
+            raise requests.Timeout("simulovaný timeout – zpráva neodešla")
         self.odeslane.append((str(rid), text))
         self._zprava(rid, 2, text)
+        if self.cteni_po_odeslani:
+            self.porucha_cteni = self.cteni_po_odeslani
         if self.porucha == "timeout_po_odeslani":
             raise requests.Timeout("simulovaný timeout – zpráva přitom odešla")
         return {}
