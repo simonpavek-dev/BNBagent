@@ -28,6 +28,11 @@ Test `spustit` proti starému kódu rozběhl smyčku se skutečnými klíči z `
 Pokyn „změň číslo bytu všude“ přepsal i `uklidy_nazev`, i když aplikace úklidů byt vede pod původním názvem.
 → Technické klíče (párovací názvy, ID) od popisných údajů oddělit; nástroje správce by je neměly měnit bez kontroly.
 
+## Výchozí hodnota parametru se vyhodnotí při importu
+`Databaze(path=config.DB_PATH)` si cestu zamkla při startu – přesměrování v testech nefungovalo a `prace.vytvor_db()`
+by v testu psal do skutečné databáze.
+→ Konfiguraci číst až za běhu (`path=None` → `config.DB_PATH`); `grep "def .*=\s*config\."` při revizi.
+
 ## X-RateLimit-Retry-After je Unix čas, ne sekundy
 → Vždy číst dokumentaci API, ne odhadovat význam hlavičky podle názvu.
 

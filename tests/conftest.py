@@ -1,4 +1,6 @@
 """Testy nikdy nesmí sáhnout na skutečné Smoobu, Telegram ani Claude: smyšlené klíče a zákaz sítě."""
+from datetime import datetime
+
 import pytest
 import requests
 
@@ -51,9 +53,12 @@ wifi:
 """
 
 
+ZACATEK = datetime(2026, 11, 2, 9, 0)  # pondělí 9:00 – výchozí zmrazený čas simulace
+
+
 class Svet:
     def __init__(self, monkeypatch, tmp_path):
-        from agent import prace, znalosti
+        from agent import hodiny, prace, uklidy, znalosti
         from agent.databaze import Databaze
         from nahrazky import FakeModel, FakeSmoobu, FakeTelegram
 
@@ -70,6 +75,8 @@ class Svet:
         monkeypatch.setattr(config, "PRIJEZDY_AUTOMATICKY", False)
         monkeypatch.setattr(config, "HODNOCENI_HOSTU", False)
 
+        hodiny.zmraz(ZACATEK)
+        uklidy._cache.update(cas=0.0, pobyty=None)
         self.smoobu = FakeSmoobu()
         self.telegram = FakeTelegram(monkeypatch)
         self.model = FakeModel(monkeypatch)
@@ -80,11 +87,13 @@ class Svet:
         self.byt_soubor.write_text(BYT.format(kod=kod, overeno=overeno), encoding="utf-8")
 
     def cyklus(self):
-        """Jeden průchod agenta (zatím jen vyřízení zpráv; po refaktoru celý __main__.jeden_cyklus)."""
-        from agent import prace
-        prace.vyrid_zpravy(self.smoobu, self.db)
+        """Jeden celý průchod agenta (__main__.jeden_cyklus) nad náhražkami."""
+        from agent import __main__ as cli
+        return cli.jeden_cyklus(self.smoobu, self.db)
 
 
 @pytest.fixture
 def svet(monkeypatch, tmp_path):
-    return Svet(monkeypatch, tmp_path)
+    from agent import hodiny
+    yield Svet(monkeypatch, tmp_path)
+    hodiny.rozmraz()

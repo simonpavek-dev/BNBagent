@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import config, navrhy, oznameni, prace, spravce
+from . import config, hodiny, navrhy, oznameni, prace, spravce
 from .databaze import Databaze
 
 log = logging.getLogger("agent")
@@ -23,9 +23,9 @@ POPISKY_ROZHODNUTI = {
 
 def _stav(db):
     posledni = db.nastaveni("posledni_kontrola")
-    bezi = bool(posledni) and datetime.now() - datetime.fromisoformat(posledni) < timedelta(
+    bezi = bool(posledni) and hodiny.ted() - datetime.fromisoformat(posledni) < timedelta(
         seconds=config.INTERVAL_MINUT * 60 + 180)
-    dnes = datetime.now().date().isoformat()
+    dnes = hodiny.dnes().isoformat()
     rozhodnuti = db.conn.execute(
         "SELECT json_extract(detail, '$.rozhodnuti'), count(*) FROM udalosti "
         "WHERE akce = 'rozhodnuti' AND cas >= ? GROUP BY 1", (dnes,)).fetchall()

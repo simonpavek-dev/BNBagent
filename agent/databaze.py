@@ -1,9 +1,9 @@
 """Malá SQLite databáze: co už agent vyřídil a záznam všeho, co udělal."""
 import json
 import sqlite3
-from datetime import datetime
 
-from . import config
+
+from . import config, hodiny
 
 
 class Databaze:
@@ -59,7 +59,7 @@ class Databaze:
 
     @staticmethod
     def _ted():
-        return datetime.now().isoformat(timespec="seconds")
+        return hodiny.ted_iso()
 
     def zprava_vyrizena(self, message_id):
         row = self.conn.execute(

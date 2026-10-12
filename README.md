@@ -118,3 +118,10 @@ Pak do `.env` vyplň vlastní klíče (Smoobu, Claude, Telegram) a do `znalostni
 ## Kódy keyboxů
 V souboru bytu: `keybox_kod` = kód. Když se kód nemění, nech `keybox_kod_plati_pro_rezervaci` prázdné.
 Když ho měníš u každé rezervace o +1010, vyplň ID rezervace ze Smoobu, pro kterou kód platí.
+
+## Testy
+```bash
+.venv/bin/pip install -r requirements-dev.txt
+.venv/bin/python -m pytest
+```
+Testy běží bez internetu a bez `.env` (náhražky Smoobu, Telegramu a modelu v `tests/nahrazky.py`).

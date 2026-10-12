@@ -1,11 +1,11 @@
 """Rozhodování agenta – volání Claude API."""
 import json
 import logging
-from datetime import datetime
+
 
 import anthropic
 
-from . import config, mapy, znalosti
+from . import config, hodiny, mapy, znalosti
 
 log = logging.getLogger("agent")
 _client = None
@@ -101,7 +101,7 @@ def zapis_naklady(response, ucel):
     cena += hledani * CENA_HLEDANI
     try:
         with open(config.DATA_DIR / "naklady.jsonl", "a", encoding="utf-8") as f:
-            f.write(json.dumps({"cas": datetime.now().isoformat(timespec="seconds"), "ucel": ucel,
+            f.write(json.dumps({"cas": hodiny.ted_iso(), "ucel": ucel,
                                 "usd": round(cena, 5)}) + "\n")
     except OSError:
         log.warning("Nepodařilo se zapsat náklady")

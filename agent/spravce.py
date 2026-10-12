@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 import yaml
 
-from . import config, kontext, mozek, oznameni, prace, uklidy
+from . import config, hodiny, kontext, mozek, oznameni, prace, uklidy
 
 log = logging.getLogger("agent")
 ZALOHY_DIR = config.DATA_DIR / "zalohy"
@@ -64,7 +64,7 @@ def uprav_soubor(soubor, puvodni_text, novy_text):
     novy_obsah = obsah.replace(puvodni_text, novy_text)
     yaml.safe_load(novy_obsah)  # nevalidní YAML se neuloží
     ZALOHY_DIR.mkdir(exist_ok=True)
-    zaloha = ZALOHY_DIR / f"{soubor.replace('/', '__')}.{datetime.now():%Y%m%d-%H%M%S}"
+    zaloha = ZALOHY_DIR / f"{soubor.replace('/', '__')}.{hodiny.ted():%Y%m%d-%H%M%S}"
     shutil.copy2(cesta, zaloha)
     cesta.write_text(novy_obsah, encoding="utf-8")
     rozdil = "\n".join(difflib.unified_diff(obsah.splitlines(), novy_obsah.splitlines(), lineterm="", n=0))
@@ -98,7 +98,7 @@ def aktivita(db, pocet=30):
 
 
 def naklady():
-    dnes = datetime.now().date()
+    dnes = hodiny.dnes()
     soucty = {"dnes": 0.0, "7_dni": 0.0, "tento_mesic": 0.0}
     cesta = config.DATA_DIR / "naklady.jsonl"
     if cesta.exists():
@@ -214,7 +214,7 @@ def odpovez(db, text_hostitele):
     messages = [{"role": "user" if r == "hostitel" else "assistant", "content": t} for r, t, _ in historie]
     while messages and messages[0]["role"] != "user":
         messages.pop(0)
-    kontext = (f"Dnes je {datetime.now():%d. %m. %Y %H:%M}. Režim agenta: {prace.rezim(db)}. "
+    kontext = (f"Dnes je {hodiny.ted():%d. %m. %Y %H:%M}. Režim agenta: {prace.rezim(db)}. "
                f"Soubory znalostní báze: {', '.join(seznam_souboru())}")
     for _ in range(MAX_KOL):
         response = mozek.client().messages.create(

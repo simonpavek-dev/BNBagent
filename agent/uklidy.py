@@ -20,7 +20,7 @@ from datetime import datetime, time as cas, timedelta
 
 import requests
 
-from . import config, kontext, oznameni, znalosti
+from . import config, hodiny, kontext, oznameni, znalosti
 from .databaze import Databaze
 
 log = logging.getLogger("agent")
@@ -260,7 +260,7 @@ def _nabidni_drivejsi_checkin(smoobu, db):
     """V den příjezdu: instrukce už host má, check-in je až od 15:00 a úklid je v aplikaci odkliknutý dřív
     → hostovi nabídnout, že může přijít hned. Vždy jen jako návrh ke schválení ve skupině."""
     from . import mozek, navrhy, prace  # prace importuje kody → uklidy; tady až za běhu
-    ted = datetime.now()
+    ted = hodiny.ted()
     nase = {p["smoobu_id"] for p in pobyty()}
     for r in smoobu.reservations(kontext.dnes(), kontext.dnes()):
         smoobu_id = str((r.get("apartment") or {}).get("id"))
@@ -307,7 +307,7 @@ def _prevezmi_kod(db, smoobu_id):
 
 
 def _hlidej_prijezdy(smoobu, db):
-    if datetime.now().time() < cas(config.UKLID_KONTROLA_HODINA):
+    if hodiny.ted().time() < cas(config.UKLID_KONTROLA_HODINA):
         return
     dnes = kontext.dnes()
     nase = {p["smoobu_id"] for p in pobyty()}

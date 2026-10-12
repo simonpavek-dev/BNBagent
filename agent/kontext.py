@@ -1,12 +1,11 @@
 """Sestavení textu, který agent dostane k rozhodnutí (rezervace + konverzace)."""
-from datetime import date, datetime
-from zoneinfo import ZoneInfo
+from datetime import date
 
-from . import config
+from . import hodiny
 
 
 def dnes():
-    return datetime.now(ZoneInfo(config.TIMEZONE)).date()
+    return hodiny.dnes()
 
 
 def _datum(hodnota):
@@ -57,7 +56,7 @@ def popis_konverzace(zpravy):
 
 
 def sestav(rezervace, zpravy, doplnek=""):
-    ted = datetime.now(ZoneInfo(config.TIMEZONE)).strftime("%A %d. %m. %Y %H:%M")
+    ted = hodiny.ted().strftime("%A %d. %m. %Y %H:%M")
     casti = [
         f"Aktuální datum a čas (Praha): {ted}",
         "REZERVACE:\n" + popis_rezervace(rezervace),

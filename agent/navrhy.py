@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import logging
 import re
 
-from . import mozek, oznameni, uklidy
+from . import hodiny, mozek, oznameni, uklidy
 
 log = logging.getLogger("agent")
 PROSLE_PO_HODINACH = 3  # naplánovanou zprávu starší než tohle už neposílat
@@ -30,7 +30,7 @@ def schvalit(smoobu, db, navrh, zdroj, kdo=""):
     """✅ z Telegramu/panelu: buď hned odešle, nebo naplánuje na čas odeslat_po."""
     if navrh["stav"] != "ceka":
         return False, "Tenhle návrh už je vyřízený."
-    if navrh.get("odeslat_po") and datetime.fromisoformat(navrh["odeslat_po"]) > datetime.now():
+    if navrh.get("odeslat_po") and datetime.fromisoformat(navrh["odeslat_po"]) > hodiny.ted():
         db.uprav_navrh(navrh["id"], stav="schvaleno")
         db.zapis(navrh["reservation_id"], "naplanovano", f"Odeslání naplánováno na {navrh['odeslat_po']}")
         oznameni.odeber_tlacitka(navrh["tg_message_id"])
@@ -42,17 +42,17 @@ def schvalit(smoobu, db, navrh, zdroj, kdo=""):
 
 def odesli_naplanovane(smoobu, db):
     """Odešle schválené návrhy, kterým nastal čas odeslání."""
-    ted = datetime.now().isoformat(timespec="seconds")
+    ted = hodiny.ted_iso()
     for (navrh_id,) in db.conn.execute(
             "SELECT id FROM navrhy WHERE stav = 'schvaleno' AND odeslat_po <= ?", (ted,)).fetchall():
         navrh = db.navrh(navrh_id)
         instrukce = _je_instrukce(db, navrh)
-        if instrukce and _odjezd(navrh) and _odjezd(navrh) <= datetime.now().date().isoformat():
+        if instrukce and _odjezd(navrh) and _odjezd(navrh) <= hodiny.dnes().isoformat():
             db.uprav_navrh(navrh_id, stav="zastarale")
             oznameni.odeber_tlacitka(navrh["tg_message_id"])
             oznameni.posli(f"⏰ Instrukce k příjezdu jsem NEODESLAL – pobyt už skončil.\n{navrh['hlavicka']}")
             continue
-        if not instrukce and datetime.fromisoformat(navrh["odeslat_po"]) < datetime.now() - timedelta(hours=PROSLE_PO_HODINACH):
+        if not instrukce and datetime.fromisoformat(navrh["odeslat_po"]) < hodiny.ted() - timedelta(hours=PROSLE_PO_HODINACH):
             # zpráva měla odejít dávno (agent neběžel, Smoobu bylo nedostupné…) – pozdě ji hostovi neposílat
             db.uprav_navrh(navrh_id, stav="zastarale")
             oznameni.odeber_tlacitka(navrh["tg_message_id"])

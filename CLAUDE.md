@@ -4,7 +4,8 @@ Python 3.9+, kód a komentáře česky. Běží na serveru Hetzner jako služby 
 Znalostní báze = YAML v `znalostni-baze/` (skutečné byty nejsou v gitu). Testy: `.venv/bin/python -m pytest`.
 
 ## Mapa modulů (`agent/`)
-- `__main__.py` – příkazy (kontrola, zkouska, spustit…) a hlavní smyčka; spouští ho systemd / `spustit-agenta.command`.
+- `__main__.py` – příkazy (kontrola, zkouska, spustit…), smyčka a `jeden_cyklus()`; spouští ho systemd.
+- `hodiny.py` – jediný zdroj času pro rozhodování (`ted()`, `dnes()`); v testech `zmraz()` / `posun()`.
 - `config.py` – nastavení z `.env`; importují ho všechny moduly.
 - `smoobu.py` – klient Smoobu API (jen HMAC, 401/429); instanci dělá `prace.vytvor_smoobu`.
 - `prace.py` – zprávy hostů, instrukce k příjezdu, kontrola kalendáře, hodnocení, upozornění na 401; volá `__main__`.
@@ -42,6 +43,9 @@ Znalostní báze = YAML v `znalostni-baze/` (skutečné byty nejsou v gitu). Tes
 
 ## Testy a bezpečnost
 - `tests/conftest.py` zakazuje síť a nastavuje smyšlené klíče – test nikdy nesmí sáhnout na Smoobu, Telegram ani Claude.
+- Fixture `svet`: FakeSmoobu / FakeTelegram / FakeModel (`tests/nahrazky.py`), smyšlený byt, hodiny zmrazené na
+  po 2. 11. 2026 9:00; `svet.cyklus()` = celý `jeden_cyklus`. Čas nikdy přes `datetime.now()`, vždy `hodiny.ted()`.
+- Známé chyby = `xfail(strict=True)` v `tests/test_zname_chyby.py`; po opravě značku odstranit.
 - Nikdy nespouštěj `python -m agent spustit` lokálně, když běží server (dva agenti = dvojí zprávy).
 - Na GitHub nesmí: `.env`, `data/`, skutečné byty v `znalostni-baze/apartmany/`, `poznamky-k-hostum.yaml`.
 

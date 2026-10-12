@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 import yaml
 
-from . import config, kody, kontext, mozek, oznameni, uklidy, znalosti
+from . import config, hodiny, kody, kontext, mozek, oznameni, uklidy, znalosti
 from .databaze import Databaze
 from .smoobu import Smoobu
 
@@ -206,8 +206,7 @@ def kontrola_kalendare(smoobu, db, dni=365, hlasit_ok=False):
 
 
 def datetime_ted():
-    from datetime import datetime
-    return datetime.now().isoformat(timespec="seconds")
+    return hodiny.ted_iso()
 
 
 # ---------------------------------------------------------------- instrukce k příjezdu
@@ -222,7 +221,7 @@ def priprav_prijezdy(smoobu, db, den=None):
     from .navrhy import TLACITKA_NAVRHU, kdy
     den = den or kontext.dnes()
     odeslat_po = datetime.combine(den, cas(config.PRIJEZD_ODESLAT_HODINA))
-    odeslat_po = odeslat_po.isoformat(timespec="seconds") if odeslat_po > datetime.now() else None
+    odeslat_po = odeslat_po.isoformat(timespec="seconds") if odeslat_po > hodiny.ted() else None
     for r in smoobu.reservations(den, den):
         if r.get("is-blocked-booking") or db.nastaveni(f"prijezd_{r['id']}") == "hotovo":
             continue
@@ -333,7 +332,7 @@ def navrhni_hodnoceni(smoobu, db):
 def upozorni_na_odmitnuti(db, chyba):
     """401 ze Smoobu = hned upozornit hostitele, nejvýš jednou za hodinu."""
     posledni = db.nastaveni("smoobu_odmitnuti_cas")
-    if posledni and datetime.fromisoformat(posledni) > datetime.now() - timedelta(hours=1):
+    if posledni and datetime.fromisoformat(posledni) > hodiny.ted() - timedelta(hours=1):
         return
     db.uloz_nastaveni("smoobu_odmitnuti_cas", datetime_ted())
     db.zapis("", "chyba", str(chyba))
