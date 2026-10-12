@@ -267,8 +267,13 @@ def priprav_prijezdy(smoobu, db, den=None):
                         f"(kód {kod})\n{_hlavicka(r)}\n\n{v['zprava']}",
                         [("❌ Zrušit odeslání", f"zahodit:{navrh_id}")]))
                 else:
-                    _, zprava = odeslat(smoobu, db, db.navrh(navrh_id), "automaticky")
-                    oznameni.posli(f"{zprava} – instrukce k příjezdu (kód {kod})\n\n{v['zprava']}")
+                    try:
+                        _, zprava = odeslat(smoobu, db, db.navrh(navrh_id), "automaticky")
+                        oznameni.posli(f"{zprava} – instrukce k příjezdu (kód {kod})\n\n{v['zprava']}")
+                    except Exception as e:
+                        db.uprav_navrh(navrh_id, stav="selhalo")
+                        oznameni.posli(f"⚠️ Instrukce k příjezdu se NEPODAŘILO odeslat (Smoobu: {str(e)[:200]}). "
+                                       f"Pošli je prosím ručně:\n{_hlavicka(r)}\n\n{v['zprava']}")
                 continue
             planek = f"po schválení odešlu {kdy(odeslat_po)}" if odeslat_po else "po schválení odešlu hned"
             db.uprav_navrh(navrh_id, tg_message_id=oznameni.posli(

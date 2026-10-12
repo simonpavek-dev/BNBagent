@@ -78,6 +78,17 @@ def apartmany(_args):
         print(f"  smoobu_id: {a.get('id'):<10}  {a.get('name')}")
 
 
+def _krok(db, popis, fn, *args):
+    """Spustí jeden krok cyklu agenta; chybu zaloguje a vrátí False, ostatní kroky běží dál."""
+    try:
+        fn(*args)
+        return True
+    except Exception as e:
+        logging.getLogger("agent").exception("Chyba v kroku: %s", popis)
+        db.zapis("", "chyba", f"{popis}: {e}")
+        return False
+
+
 def spustit(_args):
     import fcntl
     zamek = open(config.DATA_DIR / "agent.lock", "w")
@@ -109,9 +120,10 @@ def spustit(_args):
                 ted = datetime.now()
                 db.uloz_nastaveni("posledni_kontrola", ted.isoformat(timespec="seconds"))
                 # instrukce k příjezdu: dnešní (pokud se nestihly včera) a večer i zítřejší; každý příjezd jen jednou
-                prace.priprav_prijezdy(smoobu, db)
+                # další kroky jsou na sobě nezávislé – chyba v jednom nesmí zastavit ostatní
+                _krok(db, "instrukce k příjezdu", prace.priprav_prijezdy, smoobu, db)
                 if ted.hour >= config.PRIJEZD_HODINA:
-                    prace.priprav_prijezdy(smoobu, db, kontext.dnes() + timedelta(days=1))
+                    _krok(db, "instrukce na zítřek", prace.priprav_prijezdy, smoobu, db, kontext.dnes() + timedelta(days=1))
                 try:  # aplikace úklidů: změny kódů, problémy, je byt k příjezdu uklizený?
                     uklidy.zkontroluj(smoobu, db)
                 except uklidy.UklidyChyba as e:
@@ -119,14 +131,16 @@ def spustit(_args):
                     if db.nastaveni("uklidy_chyba_den") != ted.date().isoformat():
                         oznameni.posli(f"⚠️ {e} – kódy z ní teď nejde ověřit, instrukce s kódem neodešlu.")
                         db.uloz_nastaveni("uklidy_chyba_den", ted.date().isoformat())
-                navrhy.odesli_naplanovane(smoobu, db)
+                except Exception:
+                    log.exception("Chyba v kontrole úklidů")
+                _krok(db, "naplánované zprávy", navrhy.odesli_naplanovane, smoobu, db)
                 posledni_kk = db.nastaveni("kontrola_kalendare")
                 if not posledni_kk or ted - datetime.fromisoformat(posledni_kk) > timedelta(hours=config.KONTROLA_KALENDARE_HODIN):
-                    prace.kontrola_kalendare(smoobu, db)  # hlídá dvojí rezervace, hlásí jen problémy
+                    _krok(db, "kontrola kalendáře", prace.kontrola_kalendare, smoobu, db)  # hlásí jen problémy
                 if (config.HODNOCENI_HOSTU and ted.hour >= config.HODNOCENI_HODINA
                         and db.nastaveni("hodnoceni_den") != ted.date().isoformat()):
-                    prace.navrhni_hodnoceni(smoobu, db)
-                    db.uloz_nastaveni("hodnoceni_den", ted.date().isoformat())
+                    if _krok(db, "návrhy hodnocení", prace.navrhni_hodnoceni, smoobu, db):
+                        db.uloz_nastaveni("hodnoceni_den", ted.date().isoformat())
                 chyby_za_sebou = 0
                 if spanek_od:
                     od = datetime.fromtimestamp(spanek_od)

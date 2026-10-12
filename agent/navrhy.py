@@ -1,7 +1,11 @@
 """Akce s návrhy odpovědí – společné pro Telegram i dashboard."""
 from datetime import datetime
 
+import logging
+
 from . import mozek, oznameni, uklidy
+
+log = logging.getLogger("agent")
 
 
 def kdy(odeslat_po):
@@ -39,7 +43,16 @@ def odesli_naplanovane(smoobu, db):
     ted = datetime.now().isoformat(timespec="seconds")
     for (navrh_id,) in db.conn.execute(
             "SELECT id FROM navrhy WHERE stav = 'schvaleno' AND odeslat_po <= ?", (ted,)).fetchall():
-        _, zprava = odeslat(smoobu, db, db.navrh(navrh_id), "planovace")
+        navrh = db.navrh(navrh_id)
+        try:
+            _, zprava = odeslat(smoobu, db, navrh, "planovace")
+        except Exception as e:  # neopakovat donekonečna – jednou zkusit, pak předat hostitelům
+            log.exception("Naplánovaný návrh %s se nepodařilo odeslat", navrh_id)
+            db.uprav_navrh(navrh_id, stav="selhalo")
+            db.zapis(navrh["reservation_id"], "chyba", f"Naplánovanou zprávu se nepodařilo odeslat: {e}")
+            oznameni.odeber_tlacitka(navrh["tg_message_id"])
+            zprava = (f"⚠️ Naplánovanou zprávu se NEPODAŘILO odeslat (Smoobu: {str(e)[:200]}). "
+                      f"Pošli ji prosím hostovi ručně:\n{navrh['hlavicka']}\n\n{navrh['text']}")
         oznameni.posli(zprava)
 
 
