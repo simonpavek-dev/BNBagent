@@ -3,8 +3,12 @@
 je_jednoducha: poděkování / „ok“ / oznámení času příjezdu – krátké, bez otázky, prosby a problému.
 Takové zprávy může vyřídit levnější model (přepínač LEVNEJSI_MODEL_PRO_JEDNODUCHE). V pochybnostech vždy False –
 zpráva pak jde na hlavní model, což je bezpečnější směr.
+je_zdvorilost + odpoved_na_zdvorilost: čisté „díky / 👍 / ok“ vyřídí pravidlo úplně bez modelu
+(přepínač ZDVORILOSTI_BEZ_MODELU).
 """
 import re
+
+from . import hodiny, kontext, znalosti
 
 MAX_DELKA = 160
 OTAZKA = re.compile(r"[?¿]")
@@ -43,3 +47,71 @@ def nevyrizeny_text(zpravy):
             break
         posledni.append((m.get("message") or "").strip())
     return " ".join(reversed(posledni))
+
+
+# ---------------------------------------------------------------- P1.3 zdvořilosti bez modelu
+
+MAX_DELKA_ZDVORILOSTI = 80
+
+
+def je_zdvorilost(text):
+    """Čisté poděkování / 👍 / ok – bez otázky, prosby, problému i času příjezdu (ten se má potvrdit modelem)."""
+    text = (text or "").strip()
+    return (len(text) <= MAX_DELKA_ZDVORILOSTI and je_jednoducha(text)
+            and not CAS.search(text) and not PRIJEZD.search(text))
+
+
+# jazyk: podle slov ve zprávě (nejspolehlivější), pak podle rezervace, jinak angličtina
+JAZYK_PODLE_SLOV = [("de", r"danke|vielen"), ("it", r"grazie"), ("es", r"gracias"), ("fr", r"merci"),
+                    ("pl", r"dzięk|dziek"), ("sk", r"ďakuj|dakuj"), ("cs", r"děkuj|dekuj|díky|diky")]
+
+# (před příjezdem, během pobytu, po odjezdu)
+ODPOVEDI = {
+    "en": ("You're welcome! We look forward to welcoming you 😊", "You're welcome! Enjoy your stay 😊",
+           "Safe travels and thank you for staying with us! 😊"),
+    "de": ("Gern geschehen! Wir freuen uns auf Sie 😊", "Gern geschehen! Einen schönen Aufenthalt 😊",
+           "Gute Heimreise und danke für Ihren Aufenthalt! 😊"),
+    "cs": ("Rádi pomůžeme, těšíme se na vás 😊", "Rádi jsme pomohli, užijte si pobyt 😊",
+           "Šťastnou cestu a děkujeme za pobyt! 😊"),
+    "sk": ("Radi pomôžeme, tešíme sa na vás 😊", "Radi sme pomohli, užite si pobyt 😊",
+           "Šťastnú cestu a ďakujeme za pobyt! 😊"),
+    "it": ("Prego! Vi aspettiamo 😊", "Prego! Buon soggiorno 😊", "Buon viaggio e grazie per il soggiorno! 😊"),
+    "es": ("¡De nada! Os esperamos 😊", "¡De nada! Disfrutad de la estancia 😊",
+           "¡Buen viaje y gracias por alojaros con nosotros! 😊"),
+    "fr": ("Avec plaisir ! Au plaisir de vous accueillir 😊", "Avec plaisir ! Bon séjour 😊",
+           "Bon retour et merci pour votre séjour ! 😊"),
+    "pl": ("Nie ma za co! Czekamy na Was 😊", "Nie ma za co! Miłego pobytu 😊",
+           "Szczęśliwej podróży i dziękujemy za pobyt! 😊"),
+}
+
+# naše předchozí zpráva už byla odpověď na zdvořilost / rozloučení → na další „díky“ neodpovídat (žádná nekonečná výměna)
+NASE_ROZLOUCENI = re.compile(
+    r"you're welcome|enjoy your stay|safe travels|our pleasure|rádi jsme|rádi pomůžeme|užijte|šťastnou cestu|radi sme|"
+    r"užite|gern geschehen|schönen aufenthalt|gute heimreise|prego|buon soggiorno|buon viaggio|de nada|buen viaje|"
+    r"avec plaisir|bon séjour|bon retour|nie ma za co|miłego pobytu", re.I)
+
+
+def _jazyk(text, rezervace):
+    for jazyk, vzor in JAZYK_PODLE_SLOV:
+        if re.search(vzor, text, re.I):
+            return jazyk
+    jazyk = str(rezervace.get("language") or "").strip().lower()[:2]
+    return jazyk if jazyk in ODPOVEDI else "en"
+
+
+def odpoved_na_zdvorilost(rezervace, zpravy):
+    """Rozhodnutí ve stejném tvaru jako od modelu (rozhodnuti, odpoved_hostovi, …) – bez volání modelu."""
+    text = nevyrizeny_text(zpravy)
+    jazyk = _jazyk(text, rezervace)
+    nase = [m for m in zpravy if m.get("type") != 1]
+    if nase and NASE_ROZLOUCENI.search(nase[-1].get("message") or ""):
+        return {"rozhodnuti": "neodpovidat", "odpoved_hostovi": "", "navrh_pro_hostitele": "", "jazyk_hosta": jazyk,
+                "duvod": "Host jen poděkoval na naše rozloučení – vyřízeno pravidlem bez modelu, bez odpovědi."}
+    dnes = hodiny.dnes()
+    prijezd, odjezd = kontext._datum(rezervace.get("arrival")), kontext._datum(rezervace.get("departure"))
+    faze = 0 if prijezd and dnes < prijezd else (2 if odjezd and dnes >= odjezd else 1)
+    hostitel = znalosti.obecne().get("hostitel") or {}
+    podpis = str(hostitel.get("podpis_kratky") or str(hostitel.get("podpis") or "").strip().split("\n")[0]).strip()
+    return {"rozhodnuti": "odpovedet", "odpoved_hostovi": f"{ODPOVEDI[jazyk][faze]}\n{podpis}".strip(),
+            "navrh_pro_hostitele": "", "jazyk_hosta": jazyk,
+            "duvod": "Krátká zdvořilost hosta – odpověď z hotových vět, bez modelu."}

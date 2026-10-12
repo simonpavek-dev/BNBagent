@@ -76,6 +76,10 @@ kódy, Wi-Fi, adresu (`adresa_presna` – nikdy se nepřekládá, + `adresa_dopl
 Anglicky mluvící host ji dostane bez modelu; jiným ji model přeloží. Adresu, název a heslo Wi-Fi a kódy model vůbec
 nevidí (dostane místo nich značky ⟦1⟧…) – po překladu se vrátí v přesném původním znění; když značka chybí, jde anglická verze.
 
+## Úspora tokenů
+- `ZDVORILOSTI_BEZ_MODELU=ano`: čisté „díky / 👍 / ok“ vyřídí pravidlo bez modelu (hotové věty v 8 jazycích).
+- `LEVNEJSI_MODEL_PRO_JEDNODUCHE=ano`: krátké zprávy bez otázky a prosby (např. čas příjezdu) vyřídí `MODEL_JEDNODUCHE`.
+
 ## Ovládání přes Telegram
 Ve skupině stačí Vasila oslovit – zpráva začínající „Vasile“ (nebo zmínka @bota či odpověď na jeho zprávu):
 - „Vasile, jaké kódy teď posíláš?“ · „Vasile, kdo přijíždí tento týden?“ · „Vasile, jak je na tom Petrská s úklidem?“

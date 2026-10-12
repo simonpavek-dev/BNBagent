@@ -75,7 +75,7 @@ jak_to_u_nas_funguje:
   zavady: "Nefunkční vybavení (fén, spotřebiče, topení…) vždy eskalovat, hostovi slíbit jen, že se na to díváme a dáme vědět."
 
 # Rámec zprávy s instrukcemi k příjezdu – stejný pro všechny byty. Místa {…} vyplní agent ze zdroje pravdy
-# (jméno hosta, adresa_en, nazev_budovy, check-in, postup do bytu s kódy, Wi-Fi, check-out, odjezd.postup_en, podpis).
+# (jméno hosta, adresa_presna + adresa_doplnek_en, nazev_budovy, check-in, postup do bytu s kódy, Wi-Fi, check-out, odjezd.postup_en, podpis).
 # Text mezi nimi můžeš upravit; složené závorky {} používej jen pro tato místa.
 sablona_zpravy_k_prijezdu: |
   Hi {jmeno},
