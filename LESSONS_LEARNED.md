@@ -2,6 +2,13 @@
 
 Co nás stálo čas (přes 10 minut) a jak se tomu příště vyhnout.
 
+## Smoobu usekne zprávu od znaku „<“ (12., 14. a 18. 10.)
+Instrukce pro Vojtěšskou 2kk obsahovaly šipku „LEFT <----“. Smoobu bere „<“ jako začátek HTML značky a zbytek zprávy
+(kód bytu, Wi-Fi, check-out) zahodilo – tři hosté dostali neúplné instrukce. Agent to nepoznal, protože kontroloval
+jen text, který odeslal; Vasil pak v chatu tvrdil, že zprávy jsou kompletní, a jako možnou příčinu uvedl výpadek Smoobu.
+→ Brána nahrazuje „<“ a po odeslání ověří, co Smoobu skutečně uložilo (zkrácení = okamžité upozornění).
+Při podezření na chybnou zprávu vždy porovnat s konverzací ve Smoobu, ne s vlastním záznamem.
+
 ## Kód keyboxu ze znalostní báze byl zastaralý (Sokolská, 27. 9. a 1. 10.)
 Dva hosté dostali nefunkční kód, protože uklízečky kód změnily a YAML o tom nevěděl.
 → Zdroj pravdy pro kódy je aplikace úklidů; YAML jen s datem ověření. Před odesláním instrukcí kód ověřit znovu.

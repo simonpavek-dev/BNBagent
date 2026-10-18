@@ -28,6 +28,8 @@ Co umíš:
   datum (RRRR-MM-DD) – bez data by ho přebil starší kód z aplikace. Stálý kód od vchodu do domu je kod_vchod.
 - Rezervace a konverzace s hosty ze Smoobu jen číst (rezervace, konverzace). Stav úklidů zjistíš nástrojem stav_uklidu.
 - Zprávu hostovi nikdy neposíláš sám: nástrojem navrhni_zpravu_hostovi připravíš návrh, který hostitelé schválí tlačítkem.
+- Když se hostitel ptá na odeslané zprávy (neúplné, chybné, nedošly), nepředpokládej, že jsou v pořádku: nástrojem
+  odeslane_zpravy zjisti stav a jestli je Smoobu nezkrátilo, a nástrojem konverzace porovnej, co host skutečně dostal.
 - Říct, co jsi dělal (aktivita), kolik to stálo (naklady) a přepnout režim (nastav_rezim).
 - Vrátit poslední změnu souboru ze zálohy (vrat_zmenu).
 
@@ -150,6 +152,11 @@ NASTROJE = [
                     "Hostovi se nic neodešle, dokud to hostitel neschválí. Text piš v jazyce hosta, podpis podle obecne.yaml.",
      "input_schema": {"type": "object", "properties": {"reservation_id": {"type": "string"}, "text": {"type": "string"}},
                       "required": ["reservation_id", "text"], "additionalProperties": False}},
+    {"name": "odeslane_zpravy",
+     "description": "Zprávy, které agent odeslal hostům od data (RRRR-MM-DD): čas, rezervace, zdroj, stav odeslání "
+                    "(odeslano/selhalo/nejiste) a jestli je Smoobu uložilo zkrácené.",
+     "input_schema": {"type": "object", "properties": {"od": {"type": "string"}},
+                      "required": ["od"], "additionalProperties": False}},
     {"name": "nastav_rezim",
      "description": "Přepne režim: 'navrh' = hostům nic neposílá bez schválení, 'ostre' = odpovídá hostům sám. "
                     "Do 'ostre' jen po výslovném potvrzení hostitele.",
@@ -200,6 +207,13 @@ def _spust(db, nazev, vstup):
         db.uprav_navrh(navrh_id, tg_message_id=oznameni.posli(
             f"✍️ NÁVRH ZPRÁVY (z pokynu hostitele)\n{hlavicka}\n\n{vstup['text']}", TLACITKA_NAVRHU(navrh_id), navrh_id=navrh_id))
         return f"Návrh {navrh_id} je ve skupině ke schválení."
+    if nazev == "odeslane_zpravy":
+        return json.dumps([{"cas": cas, "rezervace": rid, "zdroj": zdroj, "stav": stav,
+                            "zkraceno_ve_smoobu": None if zkr is None else bool(zkr), "delka": len(text or ""),
+                            "zacatek": (text or "")[:120]}
+                           for cas, rid, zdroj, stav, zkr, text in db.conn.execute(
+                               "SELECT cas, reservation_id, zdroj, stav, zkraceno, text FROM odchozi WHERE cas >= ? "
+                               "ORDER BY id", (vstup["od"],))], ensure_ascii=False)
     if nazev == "nastav_rezim":
         db.uloz_nastaveni("rezim", vstup["rezim"])
         db.zapis("", "zmena_rezimu", vstup["rezim"])

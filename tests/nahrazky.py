@@ -23,6 +23,7 @@ class FakeSmoobu:
         self.porucha = None
         self.porucha_cteni = None
         self.cteni_po_odeslani = None
+        self.orez_ulozenych = None   # simulace: Smoobu uloží jen prvních N znaků zprávy
         self.pri_odmitnuti = None
         self._dalsi_id = 1000
 
@@ -78,7 +79,11 @@ class FakeSmoobu:
         if self.porucha == "timeout_bez_odeslani":
             raise requests.Timeout("simulovaný timeout – zpráva neodešla")
         self.odeslane.append((str(rid), text))
-        self._zprava(rid, 2, text)
+        # jako skutečné Smoobu: znak „<“ bere jako začátek HTML značky a zbytek textu zahodí (18. 10. 2026)
+        ulozeny = text.split("<")[0]
+        if self.orez_ulozenych:
+            ulozeny = ulozeny[:self.orez_ulozenych]
+        self._zprava(rid, 2, ulozeny)
         if self.cteni_po_odeslani:
             self.porucha_cteni = self.cteni_po_odeslani
         if self.porucha == "timeout_po_odeslani":

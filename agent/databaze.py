@@ -69,10 +69,12 @@ class Databaze:
                 hodnota TEXT
             );
         """)
-        try:  # starší databáze – doplnit sloupec pro naplánované odeslání
-            self.conn.execute("ALTER TABLE navrhy ADD COLUMN odeslat_po TEXT")
-        except sqlite3.OperationalError:
-            pass
+        for tabulka, sloupec in (("navrhy", "odeslat_po TEXT"),   # starší databáze – doplnit sloupce
+                                 ("odchozi", "zkraceno INTEGER")):  # 1 = Smoobu uložilo zprávu zkrácenou
+            try:
+                self.conn.execute(f"ALTER TABLE {tabulka} ADD COLUMN {sloupec}")
+            except sqlite3.OperationalError:
+                pass
         self.conn.commit()
 
     @staticmethod

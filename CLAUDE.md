@@ -56,6 +56,7 @@ Znalostní báze = YAML v `znalostni-baze/` (skutečné byty nejsou v gitu). Tes
 - Jen HMAC (X-API-Key, X-Timestamp, X-Nonce, X-Signature); staré `Api-Key` Smoobu vypíná 31. 10. 2026.
 - Query string pro podpis i URL: RFC 3986, klíče abecedně (mezera `%20`, `[]` → `%5B%5D`).
 - 429: GET počká do `X-RateLimit-Retry-After` (Unix čas) a zopakuje; POST (odeslání zprávy) nikdy neopakuje.
+- Znak `<` ve zprávě Smoobu bere jako HTML a zbytek zahodí – brána ho nahrazuje a ověřuje uložený text.
 
 ## Nasazení
 `server/nahrat-na-server.sh <IP>` – nejdřív stáhne změny znalostní báze provedené přes Telegram, pak nahraje kód,

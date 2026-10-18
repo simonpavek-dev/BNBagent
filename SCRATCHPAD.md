@@ -3,6 +3,9 @@
 Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na konci aktualizovat.
 
 ## Hotovo
+- Zkrácené zprávy (větev `p1-7-zkracene-zpravy`): Smoobu usekne text od „<“ → brána „<“ nahradí („‹“), po odeslání
+  ověří uloženou zprávu (`odchozi.zkraceno`, zkrácení = upozornění s celým zněním); Vasil má nástroj `odeslane_zpravy`;
+  šipky ve Vojtěšské 2kk/1kk → ⬅️/➡️. Zasaženo 12., 14. a 18. 10. (3 hosté ve Vojtěšské 2kk).
 - D2 přepínače (větev `p1-6-prepinace`): KONTROLA_KALENDARE, NABIDKA_DRIVEJSIHO_CHECKINU, HLIDANI_UKLIDU_K_PRIJEZDU,
   OPRAVA_KODU_PO_UKLIDU, CHAT_PRES_TELEGRAM (výchozí ne), HODNOCENI_HOSTU výchozí ne; test hlídá výchozí stav a .env.example.
 - P1.4 brána `odchozi.py` (větev `p1-5-brana`): jediné `send_message`, tabulka `odchozi` (odesila/odeslano/selhalo/nejiste),
