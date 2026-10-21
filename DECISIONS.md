@@ -35,3 +35,10 @@ B) poslat v 10:00 s aktuálním kódem a když se po úklidu kód změní, posla
 
 Výsledek: **B** – instrukce v 10:00 jako dosud; po změně kódu v aplikaci úklidů agent pošle hostům, kteří instrukce se
 starým kódem už dostali, opravu s novým kódem (stejnou cestou jako instrukce – automaticky / ke schválení).
+
+## D4 – Co dostane host, když se agent v ostrém režimu doptává hostitelů (21. 10. 2026)
+Možnosti: A) hned krátkou průběžnou odpověď („podíváme se na to a brzy se ozveme“), hostitelé dostanou eskalaci
+s návrhem; B) hostovi nic, dokud neodpoví hostitelé.
+
+Výsledek: **A** (doporučení, hostitel schválil plán bez výhrady) – chování jako dosud. Změna = jen úprava v
+`prace._vyrid_jednu` (ostrý režim posílá i `eskalovat`), kdykoli na pokyn hostitele.
