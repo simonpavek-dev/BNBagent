@@ -3,6 +3,8 @@
 Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na konci aktualizovat.
 
 ## Hotovo
+- B6 (větev `p2-5-hlaseni-odpovedi`): `HLASIT_AUTOMATICKE_ODPOVEDI=ano` → po každé automatické odpovědi
+  oznámení do skupiny (zpráva hosta + odpověď, bez tlačítek).
 - B5 (větev `p2-4-pojistka-smycky`): v ostrém režimu nejvýš 4 automatické odpovědi na zprávy hosta jedné rezervaci
   za 24 h (`prace.MAX_AUTOMATICKYCH_ZA_DEN`), další jen ke kontrole; instrukce k příjezdu a opravy kódu se nepočítají.
 - B4 (větev `p2-3-znacky-kodu`): model u odpovědí hostům nevidí ani nepíše kódy a Wi-Fi – dostane značky

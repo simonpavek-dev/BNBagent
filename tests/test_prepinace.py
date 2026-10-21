@@ -9,7 +9,8 @@ from agent import config, hodiny, spravce, telegram_ovladani, uklidy
 
 PREPINACE = ["KONTROLA_KALENDARE", "NABIDKA_DRIVEJSIHO_CHECKINU", "HLIDANI_UKLIDU_K_PRIJEZDU",
              "OPRAVA_KODU_PO_UKLIDU", "CHAT_PRES_TELEGRAM", "HODNOCENI_HOSTU",
-             "ZDVORILOSTI_BEZ_MODELU", "LEVNEJSI_MODEL_PRO_JEDNODUCHE", "PRIJEZDY_AUTOMATICKY"]
+             "ZDVORILOSTI_BEZ_MODELU", "LEVNEJSI_MODEL_PRO_JEDNODUCHE", "PRIJEZDY_AUTOMATICKY",
+             "HLASIT_AUTOMATICKE_ODPOVEDI"]
 
 
 @pytest.mark.parametrize("nazev", PREPINACE)
@@ -96,3 +97,21 @@ def test_chat_pres_telegram(svet, monkeypatch, zapnuto):
                                         "from": {"id": 1, "first_name": "Tester"}, "text": "Vasile, jaké máš kódy?",
                                         "message_id": 5})
     assert bool(dotazy) is zapnuto
+
+
+@pytest.mark.parametrize("zapnuto", [False, True])
+def test_hlaseni_automatickych_odpovedi(svet, monkeypatch, zapnuto):
+    """B6: po každé odpovědi, kterou agent v ostrém režimu poslal sám, dá vědět do skupiny (i s textem)."""
+    monkeypatch.setattr(config, "HLASIT_AUTOMATICKE_ODPOVEDI", zapnuto)
+    monkeypatch.setattr(config, "REZIM", "ostre")
+    dnes = hodiny.dnes()
+    svet.smoobu.pridej_rezervaci("R1", dnes + timedelta(days=2), dnes + timedelta(days=4))
+    svet.smoobu.napis_host("R1", "Where can we park?")
+    svet.model.odpovez(text="Parking is on the street.")
+    svet.cyklus()
+    assert svet.smoobu.odeslane == [("R1", "Parking is on the street.")]
+    hlaseni = [z for z in svet.telegram.zpravy if "odpověděl hostovi" in z["text"]]
+    assert bool(hlaseni) is zapnuto
+    if zapnuto:
+        assert "Where can we park?" in hlaseni[0]["text"] and "Parking is on the street." in hlaseni[0]["text"]
+        assert hlaseni[0]["tlacitka"] == []

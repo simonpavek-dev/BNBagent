@@ -17,7 +17,8 @@ def bez_skutecnych_sluzeb(monkeypatch, tmp_path):
     # přepínače a režimy na výchozí hodnoty – testy nesmí záviset na tom, co je zapnuté ve skutečném .env
     for prepinac in ("ZDVORILOSTI_BEZ_MODELU", "LEVNEJSI_MODEL_PRO_JEDNODUCHE", "PRIJEZDY_AUTOMATICKY",
                      "KONTROLA_KALENDARE", "NABIDKA_DRIVEJSIHO_CHECKINU",
-                     "HLIDANI_UKLIDU_K_PRIJEZDU", "OPRAVA_KODU_PO_UKLIDU", "CHAT_PRES_TELEGRAM", "HODNOCENI_HOSTU"):
+                     "HLIDANI_UKLIDU_K_PRIJEZDU", "OPRAVA_KODU_PO_UKLIDU", "CHAT_PRES_TELEGRAM", "HODNOCENI_HOSTU",
+                     "HLASIT_AUTOMATICKE_ODPOVEDI"):
         monkeypatch.setattr(config, prepinac, False, raising=False)
     monkeypatch.setattr(config, "REZIM", "navrh")
     monkeypatch.setattr(config, "MODEL", "claude-opus-5")

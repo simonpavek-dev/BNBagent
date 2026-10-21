@@ -46,6 +46,8 @@ ZDVORILOSTI_BEZ_MODELU = os.getenv("ZDVORILOSTI_BEZ_MODELU", "ne").strip().lower
 LEVNEJSI_MODEL_PRO_JEDNODUCHE = os.getenv("LEVNEJSI_MODEL_PRO_JEDNODUCHE", "ne").strip().lower() == "ano"
 MODEL_JEDNODUCHE = os.getenv("MODEL_JEDNODUCHE", "claude-sonnet-5").strip()
 PRIJEZDY_AUTOMATICKY = os.getenv("PRIJEZDY_AUTOMATICKY", "ne").strip().lower() == "ano"
+# ano = po každé odpovědi, kterou agent v ostrém režimu poslal sám, přijde do skupiny oznámení s textem
+HLASIT_AUTOMATICKE_ODPOVEDI = os.getenv("HLASIT_AUTOMATICKE_ODPOVEDI", "ne").strip().lower() == "ano"
 
 # Aplikace úklidů (uklid.kolbl-apartments.cz) – účet agenta; prázdné = napojení vypnuté
 UKLIDY_URL = os.getenv("UKLIDY_URL", "").strip()

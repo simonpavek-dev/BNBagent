@@ -183,6 +183,9 @@ def _upozorni(db, r, zprava, v, odeslano):
         return
     if v["rozhodnuti"] == "odpovedet" and odeslano:
         log.info("Odpovězeno automaticky: %s", hlavicka)
+        if config.HLASIT_AUTOMATICKE_ODPOVEDI:
+            oznameni.posli(f"✅ Vasil odpověděl hostovi sám\n{hlavicka}\n\nHost napsal:\n{host_text}\n\n"
+                           f"Odpověď:\n{v['odpoved_hostovi']}")
         return
 
     navrh_id = db.novy_navrh(r["id"], zprava.get("id"), v["odpoved_hostovi"], v["jazyk_hosta"], hlavicka)

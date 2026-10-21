@@ -83,6 +83,10 @@ Model skutečné kódy ani Wi-Fi nevidí: ve znalostní bázi i v konverzaci je 
 zbytek ze znalostní báze). Když v odpovědi zůstane značka bez hodnoty nebo číslo, které vypadá jako kód, agent ji sám
 nepošle a dá ji hostitelům ke kontrole.
 
+## Hlášení automatických odpovědí
+S `HLASIT_AUTOMATICKE_ODPOVEDI=ano` přijde po každé odpovědi, kterou agent v ostrém režimu poslal sám, do skupiny
+„✅ Vasil odpověděl hostovi sám“ se zprávou hosta i odpovědí – máte přehled a můžete případně opravit ručně.
+
 ## Pojistka proti zacyklení
 V ostrém režimu agent jedné rezervaci pošle sám nejvýš 4 odpovědi za 24 hodin. Další odpověď dostanou hostitelé
 ke schválení („🔔 ZKONTROLUJ ODPOVĚĎ“), aby si agent s hostem (nebo s jiným robotem) nepsali donekonečna.
