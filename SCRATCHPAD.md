@@ -3,6 +3,8 @@
 Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na konci aktualizovat.
 
 ## Hotovo
+- 21. 10. 17:13 nasazeno (main `d0e0529`) a přepnuto na `REZIM=ostre`, `HLASIT_AUTOMATICKE_ODPOVEDI=ano`;
+  `INSTRUKCE_ZE_SABLONY` z `.env` odstraněn; v DB serveru není `rezim` (platí `.env`). První cykly bez chyb.
 - A2 (větev `p2-6-simulator-scenaru`): `tests/test_scenare.py` – cesta hosta (dotaz → instrukce 10:00 → změna kódu
   + oprava → díky → Wi-Fi přes značku → sleva/eskalace → odjezd), výpadek Smoobu 503 + Telegramu, timeout při odeslání,
   zkrácená zpráva; vše v režimu návrhů i ostrém. Ověřeno, že rozbitá pojistka scénáře shodí.
@@ -58,6 +60,7 @@ Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na ko
 - Repo veřejné, historie se nepřepisuje, WhatsApp čísla zůstávají v `obecne.yaml` (`DECISIONS.md` D1).
 
 ## Další
+- C8: sledovat první automatické odpovědi (odchozi zdroj=automaticky, „🔔 ZKONTROLUJ“, eskalace) a dát přehled.
 - Zprávy hostů: agent řeší nejnovější nezpracovanou zprávu hosta; víc nezodpovězených dotazů za sebou model vidí v konverzaci.
 
 ## Zaseknuté
