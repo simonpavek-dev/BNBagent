@@ -34,7 +34,6 @@ PRIJEZD_ODESLAT_HODINA = int(os.getenv("PRIJEZD_ODESLAT_HODINA", "10"))
 # ano = instrukce k příjezdu se v PRIJEZD_ODESLAT_HODINA odešlou samy (bez schválení, jde je jen zrušit);
 # odpovědi na zprávy hostů se dál řídí REZIM
 KONTROLA_KALENDARE_HODIN = float(os.getenv("KONTROLA_KALENDARE_HODIN", "1"))  # jak často hlídat dvojí rezervace
-# ano = instrukce k příjezdu skládá kód ze šablony (kódy, Wi-Fi, časy ze zdroje pravdy), model jen překládá
 # ano = jednoduché zprávy hostů (díky, ok, čas příjezdu – trideni.je_jednoducha) vyřizuje levnější MODEL_JEDNODUCHE
 # ano = čisté zdvořilosti hostů (díky, 👍, ok) vyřídí pravidlo bez modelu (trideni.odpoved_na_zdvorilost)
 # ---- přepínače funkcí (výchozí vypnuto; na serveru zapnuté v .env)
@@ -46,7 +45,6 @@ CHAT_PRES_TELEGRAM = os.getenv("CHAT_PRES_TELEGRAM", "ne").strip().lower() == "a
 ZDVORILOSTI_BEZ_MODELU = os.getenv("ZDVORILOSTI_BEZ_MODELU", "ne").strip().lower() == "ano"
 LEVNEJSI_MODEL_PRO_JEDNODUCHE = os.getenv("LEVNEJSI_MODEL_PRO_JEDNODUCHE", "ne").strip().lower() == "ano"
 MODEL_JEDNODUCHE = os.getenv("MODEL_JEDNODUCHE", "claude-sonnet-5").strip()
-INSTRUKCE_ZE_SABLONY = os.getenv("INSTRUKCE_ZE_SABLONY", "ne").strip().lower() == "ano"
 PRIJEZDY_AUTOMATICKY = os.getenv("PRIJEZDY_AUTOMATICKY", "ne").strip().lower() == "ano"
 
 # Aplikace úklidů (uklid.kolbl-apartments.cz) – účet agenta; prázdné = napojení vypnuté

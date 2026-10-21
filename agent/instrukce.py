@@ -1,4 +1,4 @@
-"""Instrukce k příjezdu ze šablony (přepínač INSTRUKCE_ZE_SABLONY).
+"""Instrukce k příjezdu ze šablony – jediná cesta (kódy, Wi-Fi, adresu a časy dosazuje kód, model jen překládá).
 
 Kódy, Wi-Fi, adresu a časy dosazuje kód ze zdroje pravdy (aplikace úklidů / znalostní báze), nikdy model.
 Rámec zprávy je v znalostni-baze/obecne.yaml (sablona_zpravy_k_prijezdu, místa {…}). Anglicky mluvící host

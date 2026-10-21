@@ -71,10 +71,11 @@ Na zprávy z doby před spuštěním agent neodpovídá, ty vyřídíš sám. Ne
 Když jsou návrhy dobré, přepni v `.env` na `REZIM=ostre` a agenta restartuj (Ctrl+C a znovu `spustit`).
 
 ## Instrukce k příjezdu ze šablony
-S `INSTRUKCE_ZE_SABLONY=ano` skládá zprávu k příjezdu kód podle rámce `sablona_zpravy_k_prijezdu` v `obecne.yaml`:
+Zprávu k příjezdu skládá vždy kód podle rámce `sablona_zpravy_k_prijezdu` v `obecne.yaml`:
 kódy, Wi-Fi, adresu (`adresa_presna` – nikdy se nepřekládá, + `adresa_doplnek_en`), postup (`postup_en` / `zprava_k_prijezdu`) a časy dosadí ze zdroje pravdy.
 Anglicky mluvící host ji dostane bez modelu; jiným ji model přeloží. Adresu, název a heslo Wi-Fi a kódy model vůbec
 nevidí (dostane místo nich značky ⟦1⟧…) – po překladu se vrátí v přesném původním znění; když značka chybí, jde anglická verze.
+Chybí-li bytu údaj (Wi-Fi, postup…), instrukce se nepošlou a hostitelé dostanou upozornění s návrhem.
 
 ## Úspora tokenů
 - `ZDVORILOSTI_BEZ_MODELU=ano`: čisté „díky / 👍 / ok“ vyřídí pravidlo bez modelu (hotové věty v 8 jazycích).

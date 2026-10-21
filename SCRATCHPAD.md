@@ -3,6 +3,8 @@
 Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na konci aktualizovat.
 
 ## Hotovo
+- A1 (větev `p2-1-jen-sablona`): instrukce k příjezdu jen ze šablony; stará cesta přes model (`mozek.priprav_instrukce_k_prijezdu`)
+  a přepínač `INSTRUKCE_ZE_SABLONY` odstraněny; chybějící údaj bytu = upozornění s návrhem.
 - Zkrácené zprávy (větev `p1-7-zkracene-zpravy`): Smoobu usekne text od „<“ → brána „<“ nahradí („‹“), po odeslání
   ověří uloženou zprávu (`odchozi.zkraceno`, zkrácení = upozornění s celým zněním); Vasil má nástroj `odeslane_zpravy`;
   šipky ve Vojtěšské 2kk/1kk → ⬅️/➡️. Zasaženo 12., 14. a 18. 10. (3 hosté ve Vojtěšské 2kk).
@@ -44,7 +46,6 @@ Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na ko
 - Repo veřejné, historie se nepřepisuje, WhatsApp čísla zůstávají v `obecne.yaml` (`DECISIONS.md` D1).
 
 ## Další
-- Po zapnutí `INSTRUKCE_ZE_SABLONY` na serveru odstranit starou cestu přes model (`mozek.priprav_instrukce_k_prijezdu`).
 - Zprávy hostů: agent řeší nejnovější nezpracovanou zprávu hosta; víc nezodpovězených dotazů za sebou model vidí v konverzaci.
 - Simulátor scénářů: základ je fixture `svet` + `svet.cyklus()` + `hodiny.posun()`; rozšířit o scénáře.
 - `server/nahrat-na-server.sh`: výpis `kontrola | head -6` uřízne řádek „Smoobu HMAC“ → zvětšit.

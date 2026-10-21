@@ -1,6 +1,5 @@
 """Náhražky pro testy celého cyklu agenta bez internetu: Smoobu, Telegram a model Claude.
 Všechna data jsou smyšlená (byt, hosté, kódy)."""
-import re
 
 import requests
 
@@ -140,7 +139,7 @@ class FakeModel:
     """Místo mozek._zavolej vrací připravený JSON podle účelu volání; zaznamenává kontext, který dostal."""
 
     def __init__(self, monkeypatch):
-        self.odpovedi = {"instrukce k příjezdu": self._instrukce}
+        self.odpovedi = {}
         self.volani = []
         monkeypatch.setattr(mozek, "_zavolej", self._zavolej)
         monkeypatch.setattr(mozek, "priprav_zpravu_hostitele", lambda text, jazyk: f"[{jazyk}] {text}")
@@ -149,13 +148,6 @@ class FakeModel:
         self.volani.append({"ucel": ucel, "kontext": kontext, "model": model})
         odpoved = self.odpovedi[ucel]
         return odpoved(kontext) if callable(odpoved) else dict(odpoved)
-
-    @staticmethod
-    def _instrukce(kontext):
-        kod = re.search(r"AKTUÁLNÍ KÓD KEYBOXU PRO TUTO REZERVACI: (\S+)", kontext)
-        if not kod:
-            return {"poslat": False, "zprava": "", "jazyk_hosta": "en", "duvod": "chybí kód"}
-        return {"poslat": True, "zprava": f"Hi! Keybox code: {kod.group(1)}", "jazyk_hosta": "en", "duvod": ""}
 
     def odpovez(self, rozhodnuti="odpovedet", text="Thank you for your message!", navrh=""):
         """Nastaví odpověď na zprávy hostů."""

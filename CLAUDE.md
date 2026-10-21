@@ -16,7 +16,7 @@ Znalostní báze = YAML v `znalostni-baze/` (skutečné byty nejsou v gitu). Tes
 - `oznameni.py` – Telegram: `posli` (při výpadku do fronty, `dorucit_frontu` v cyklu), tlačítka, getUpdates.
 - `spravce.py` – chat s hostitelem (panel i Telegram) s nástroji: znalostní báze, rezervace, kódy, návrh zprávy.
 - `uklidy.py` – aplikace úklidů (čte `/uklidy`): kódy, stav úklidu, nabídka dřívějšího check-inu; volá hlavní smyčka, `kody`.
-- `instrukce.py` – instrukce k příjezdu ze šablony (přepínač `INSTRUKCE_ZE_SABLONY`), model jen překládá; volá `prace`.
+- `instrukce.py` – instrukce k příjezdu ze šablony (jediná cesta), model jen překládá; volá `prace`.
 - `trideni.py` – pravidla bez modelu: jednoduchá zpráva (→ levnější model), čistá zdvořilost (→ odpověď bez modelu); volá `prace`.
 - `kody.py` – platný kód keyboxu pro rezervaci (aplikace úklidů / znalostní báze); volají `prace`, `spravce`.
 - `kontext.py` – text rezervace + konverzace pro model, dnešní datum; volají `prace`, `mozek`, `spravce`.

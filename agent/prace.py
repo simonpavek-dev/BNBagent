@@ -262,17 +262,8 @@ def priprav_prijezdy(smoobu, db, den=None):
             continue
         try:
             kod = kody.kod_pro_rezervaci(smoobu, apartman, r)
-            zpravy = smoobu.messages(r["id"])
-            doplnek = popis_kodu(kod)
-            if den > kontext.dnes():  # večer se připravuje na zítřek – model to nesmí zamítnout kvůli datu
-                doplnek += (f"\n\nTuto zprávu připravuješ předem: hostitel ji schválí dnes a hostovi se odešle až v den "
-                            f"příjezdu ({den.day}. {den.month}.) v {config.PRIJEZD_ODESLAT_HODINA}:00. Napiš ji tak, jako by "
-                            "už byl den příjezdu, a kvůli dnešnímu datu ji nezamítej.")
-            if config.INSTRUKCE_ZE_SABLONY:  # kódy, Wi-Fi a časy dosadí kód, model jen překládá
-                v = instrukce.priprav(apartman, r, kod, zpravy)
-            else:
-                v = mozek.priprav_instrukce_k_prijezdu(
-                    znalosti.obecne_text(), apartman_text, kontext.sestav(r, zpravy, doplnek))
+            # kódy, Wi-Fi, adresu a časy dosadí kód ze šablony, model nanejvýš přeloží
+            v = instrukce.priprav(apartman, r, kod, smoobu.messages(r["id"]))
         except uklidy.UklidyChyba as e:  # výpadek aplikace úklidů hlásí hlavní smyčka jednou denně
             log.warning("Instrukce k příjezdu pro %s počkají, kód nejde ověřit: %s", r.get("id"), e)
             continue
@@ -283,6 +274,10 @@ def priprav_prijezdy(smoobu, db, den=None):
         db.uloz_nastaveni(f"prijezd_{r['id']}", "hotovo")
         db.zapis(r["id"], "instrukce_prijezd", dict(v, hlavicka=_hlavicka(r), kod=kod,
                                                     smoobu_id=str((r.get("apartment") or {}).get("id"))))
+        if not v["poslat"] and v.get("zprava"):  # ve znalostní bázi chybí údaj – návrh s mezerami pro hostitele
+            oznameni.posli(f"⚠️ Instrukce k příjezdu NEJDE poslat – {v['duvod']}. Doplň údaj do znalostní báze "
+                           f"(třeba „Vasile, …“) a instrukce pošli sám:\n{_hlavicka(r)}\n\n{v['zprava']}")
+            continue
         if not v["poslat"]:
             oznameni.posli(f"ℹ️ Instrukce k příjezdu neposílám: {v['duvod']}\n{_hlavicka(r)}")
             continue

@@ -1,5 +1,5 @@
-"""Instrukce k příjezdu ze šablony (přepínač INSTRUKCE_ZE_SABLONY): kódy, Wi-Fi, adresu a časy dosazuje kód,
-model jen překládá – a překlad se kontroluje, že v něm všechny tyto údaje zůstaly."""
+"""Instrukce k příjezdu ze šablony: kódy, Wi-Fi, adresu a časy dosazuje kód, model jen překládá – a překlad se
+kontroluje, že v něm všechny tyto údaje zůstaly. Jiná cesta (model píše celé instrukce) neexistuje."""
 from datetime import timedelta
 
 import pytest
@@ -9,7 +9,6 @@ from agent import config, hodiny
 
 @pytest.fixture
 def sablona(svet, monkeypatch):
-    monkeypatch.setattr(config, "INSTRUKCE_ZE_SABLONY", True, raising=False)
     monkeypatch.setattr(config, "PRIJEZD_ODESLAT_HODINA", 0)  # po schválení hned
     hodiny.posun(hours=2)  # 11:00
     return svet
@@ -76,10 +75,12 @@ def test_host_uz_kod_ma_instrukce_se_nepripravi(sablona):
     assert sablona.telegram.s_tlacitky() == []
 
 
-def test_vypnuty_prepinac_pouzije_model_jako_dosud(svet, monkeypatch):
-    monkeypatch.setattr(config, "INSTRUKCE_ZE_SABLONY", False, raising=False)
+def test_instrukce_vzdy_ze_sablony_model_je_nepise(svet, monkeypatch):
+    from agent import mozek
+    assert not hasattr(mozek, "priprav_instrukce_k_prijezdu")   # stará cesta, kde kódy psal model, je pryč
+    assert not hasattr(config, "INSTRUKCE_ZE_SABLONY")
     monkeypatch.setattr(config, "PRIJEZD_ODESLAT_HODINA", 0)
     hodiny.posun(hours=2)
     text = _prijezd(svet)
-    assert any(v["ucel"] == "instrukce k příjezdu" for v in svet.model.volani)
-    assert "1111" in text
+    assert [v for v in svet.model.volani if v["ucel"] == "instrukce k příjezdu"] == []
+    assert "Keybox code: 1111" in text
