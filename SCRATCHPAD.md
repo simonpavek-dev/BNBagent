@@ -3,6 +3,10 @@
 Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na konci aktualizovat.
 
 ## Hotovo
+- B4 (větev `p2-3-znacky-kodu`): model u odpovědí hostům nevidí ani nepíše kódy a Wi-Fi – dostane značky
+  [KÓD BYTU]/[KÓD DOMU]/[WIFI SÍŤ]/[WIFI HESLO], hodnoty dosadí `znacky.py`; zbylá značka nebo 4–8místné číslo
+  = odpověď jen ke kontrole („🔔 ZKONTROLUJ ODPOVĚĎ“), ✅ se zbylou značkou neodešle. Bez přepínače – vynucuje
+  nepřekročitelné pravidlo z CLAUDE.md.
 - A3 (větev `p2-2-vypis-nasazeni`): `nahrat-na-server.sh` vypíše celou `kontrola` (dřív `head -6` uřízl „Smoobu HMAC“).
 - A1 (větev `p2-1-jen-sablona`): instrukce k příjezdu jen ze šablony; stará cesta přes model (`mozek.priprav_instrukce_k_prijezdu`)
   a přepínač `INSTRUKCE_ZE_SABLONY` odstraněny; chybějící údaj bytu = upozornění s návrhem.

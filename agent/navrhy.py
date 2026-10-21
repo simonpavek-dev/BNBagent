@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import logging
 import re
 
-from . import hodiny, mozek, odchozi, oznameni, uklidy
+from . import hodiny, mozek, odchozi, oznameni, uklidy, znacky
 
 log = logging.getLogger("agent")
 PROSLE_PO_HODINACH = 3  # naplánovanou zprávu starší než tohle už neposílat
@@ -117,6 +117,10 @@ def odeslat(smoobu, db, navrh, zdroj, kdo=""):
             oznameni.odeber_tlacitka(navrh["tg_message_id"])
             return False, (f"⚠️ Neodesláno – mezitím {proc}.\n{navrh['hlavicka']}\n"
                            "Agent na novou zprávu hosta připraví nový návrh sám.")
+    zbyle = znacky.zbyle_znacky(navrh["text"])
+    if zbyle:  # místo kódu / Wi-Fi zůstala značka – host by dostal „[KÓD BYTU]“
+        return False, (f"⚠️ Neodesláno – ve zprávě zůstala značka {', '.join(zbyle)} místo skutečného údaje. "
+                       f"Oprav ji přes ✏️ Upravit.\n{navrh['hlavicka']}")
     problem_s_kodem = uklidy.kod_stale_plati(db, navrh)
     if problem_s_kodem:
         oznameni.odeber_tlacitka(navrh["tg_message_id"])

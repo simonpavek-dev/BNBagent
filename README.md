@@ -77,6 +77,12 @@ Anglicky mluvící host ji dostane bez modelu; jiným ji model přeloží. Adres
 nevidí (dostane místo nich značky ⟦1⟧…) – po překladu se vrátí v přesném původním znění; když značka chybí, jde anglická verze.
 Chybí-li bytu údaj (Wi-Fi, postup…), instrukce se nepošlou a hostitelé dostanou upozornění s návrhem.
 
+## Kódy a Wi-Fi v odpovědích hostům
+Model skutečné kódy ani Wi-Fi nevidí: ve znalostní bázi i v konverzaci je dostane jako značky `[KÓD BYTU]`, `[KÓD DOMU]`,
+`[WIFI SÍŤ]`, `[WIFI HESLO]` a stejně je napíše do odpovědi. Skutečné hodnoty dosadí agent (kód keyboxu z aplikace úklidů,
+zbytek ze znalostní báze). Když v odpovědi zůstane značka bez hodnoty nebo číslo, které vypadá jako kód, agent ji sám
+nepošle a dá ji hostitelům ke kontrole.
+
 ## Úspora tokenů
 - `ZDVORILOSTI_BEZ_MODELU=ano`: čisté „díky / 👍 / ok“ vyřídí pravidlo bez modelu (hotové věty v 8 jazycích).
 - `LEVNEJSI_MODEL_PRO_JEDNODUCHE=ano`: krátké zprávy bez otázky a prosby (např. čas příjezdu) vyřídí `MODEL_JEDNODUCHE`.

@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 import yaml
 
-from . import config, hodiny, instrukce, kody, kontext, mozek, oznameni, trideni, uklidy, znalosti
+from . import config, hodiny, instrukce, kody, kontext, mozek, oznameni, trideni, uklidy, znacky, znalosti
 from .databaze import Databaze
 from .smoobu import Smoobu
 
@@ -116,7 +116,6 @@ def _vyrid_jednu(smoobu, db, r, zpravy, zprava):
     except Exception:
         log.exception("Nepodařilo se dopočítat kód keyboxu pro rezervaci %s", r.get("id"))
         kod = None  # agent pak kód neprozradí a případně eskaluje
-    doplnek = "\n\n".join(x for x in (popis_kodu(kod), uklidy.popis_pro_zpravu(r)) if x)
     text_hosta = trideni.nevyrizeny_text(zpravy)
     if config.ZDVORILOSTI_BEZ_MODELU and trideni.je_zdvorilost(text_hosta):
         vysledek = trideni.odpoved_na_zdvorilost(r, zpravy)  # čisté „díky / 👍“ bez modelu
@@ -124,14 +123,13 @@ def _vyrid_jednu(smoobu, db, r, zpravy, zprava):
         model = None  # None = hlavní model (config.MODEL)
         if config.LEVNEJSI_MODEL_PRO_JEDNODUCHE and trideni.je_jednoducha(text_hosta):
             model = config.MODEL_JEDNODUCHE
-        vysledek = mozek.rozhodni_o_zprave(
-            znalosti.obecne_text(), apartman_text, kontext.sestav(r, zpravy, doplnek), model=model
-        )
+        vysledek = zeptej_se_modelu(r, zpravy, apartman, apartman_text, kod, model)
     rozhodnuti = vysledek["rozhodnuti"]
     db.zapis(r["id"], "rozhodnuti", dict(vysledek, hlavicka=_hlavicka(r), zprava_hosta=zprava.get("message", "")))
     odeslano = False
 
-    if rezim(db) == "ostre" and rozhodnuti in ("odpovedet", "eskalovat") and vysledek["odpoved_hostovi"].strip():
+    if (rezim(db) == "ostre" and rozhodnuti in ("odpovedet", "eskalovat") and vysledek["odpoved_hostovi"].strip()
+            and not vysledek.get("kontrola")):  # podezřelý kód / zbylá značka → jen ke kontrole
         from .navrhy import odeslat
         navrh_id = db.novy_navrh(r["id"], zprava.get("id"), vysledek["odpoved_hostovi"], vysledek["jazyk_hosta"],
                                  _hlavicka(r))
@@ -146,10 +144,21 @@ def _vyrid_jednu(smoobu, db, r, zpravy, zprava):
         oznameni.posli(f"🔑 Agent poslal hostovi kód keyboxu {kod}\n{_hlavicka(r)}\nZkontroluj, že na keyboxu je nastavený.")
 
 
+def zeptej_se_modelu(r, zpravy, apartman, apartman_text, kod, model=None):
+    """Rozhodnutí modelu o zprávě hosta. Kódy a Wi-Fi model nevidí (značky), skutečné hodnoty dosadí kód."""
+    hodnoty = znacky.hodnoty(apartman, kod)
+    doplnek = "\n\n".join(x for x in (popis_kodu(kod), uklidy.popis_pro_zpravu(r)) if x)
+    vysledek = mozek.rozhodni_o_zprave(
+        znalosti.obecne_text(), znacky.schovej(apartman_text, apartman, hodnoty),
+        znacky.schovej(kontext.sestav(r, zpravy, doplnek), apartman, hodnoty), model=model)
+    return znacky.zpracuj(vysledek, hodnoty)
+
+
 def popis_kodu(kod):
     if kod:
-        return f"AKTUÁLNÍ KÓD KEYBOXU PRO TUTO REZERVACI: {kod}"
-    return "KÓD KEYBOXU PRO TUTO REZERVACI NENÍ ZNÁMÝ – pokud ho host potřebuje, eskaluj."
+        return ("KÓD KEYBOXU PRO TUTO REZERVACI je známý – v odpovědi místo něj napiš přesně značku [KÓD BYTU], "
+                "skutečný kód doplní systém.")
+    return "KÓD KEYBOXU PRO TUTO REZERVACI NENÍ ZNÁMÝ – pokud ho host potřebuje, eskaluj (značku [KÓD BYTU] nepiš)."
 
 
 def _upozorni(db, r, zprava, v, odeslano):
@@ -163,7 +172,14 @@ def _upozorni(db, r, zprava, v, odeslano):
         return
 
     navrh_id = db.novy_navrh(r["id"], zprava.get("id"), v["odpoved_hostovi"], v["jazyk_hosta"], hlavicka)
-    if v["rozhodnuti"] == "eskalovat":
+    if v.get("kontrola"):  # podezřelý kód / značka bez hodnoty – sám to neposílám
+        text = (f"🔔 ZKONTROLUJ ODPOVĚĎ – sám ji neposílám: {v['kontrola']}\n{hlavicka}\n\n"
+                f"Host napsal:\n{host_text}\n\nNavrhuji odpovědět:\n{v['odpoved_hostovi']}")
+        if v["rozhodnuti"] == "eskalovat":
+            text += f"\n\nProč se ptám: {v['duvod']}\nNávrh pro tebe: {v['navrh_pro_hostitele']}"
+        tlacitka = [("✅ Odeslat", f"odeslat:{navrh_id}"), ("✏️ Upravit", f"upravit:{navrh_id}"),
+                    ("❌ Neposílat", f"zahodit:{navrh_id}")]
+    elif v["rozhodnuti"] == "eskalovat":
         text = (
             f"🔔 POTŘEBUJU TĚ\n{hlavicka}\n\nHost napsal:\n{host_text}\n\n"
             f"Proč: {v['duvod']}\n\nNávrh, jak odpovědět:\n{v['navrh_pro_hostitele']}"

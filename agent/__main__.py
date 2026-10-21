@@ -17,7 +17,7 @@ import sys
 import time
 from datetime import datetime, timedelta
 
-from . import config, hodiny, kontext, mozek, navrhy, odchozi, oznameni, prace, telegram_ovladani, uklidy, znalosti
+from . import config, hodiny, kontext, navrhy, odchozi, oznameni, prace, telegram_ovladani, uklidy, znalosti
 from .smoobu import SmoobuOvereni
 
 
@@ -63,7 +63,6 @@ def kontrola(_args):
 
 
 def zkouska(args):
-    obecne_text = znalosti.obecne_text()
     apartman, apartman_text = znalosti.apartman_podle_souboru(args.apartman)
     if not apartman_text:
         sys.exit(f"Soubor znalostni-baze/apartmany/{args.apartman}.yaml neexistuje.")
@@ -76,7 +75,7 @@ def zkouska(args):
     }
     zpravy = [{"type": 1, "message": args.zprava, "createdAt": hodiny.ted().strftime("%Y-%m-%d %H:%M")}]
     kod = ((apartman or {}).get("prijezd") or {}).get("keybox_kod")  # při zkoušce výchozí kód
-    v = mozek.rozhodni_o_zprave(obecne_text, apartman_text, kontext.sestav(rezervace, zpravy, prace.popis_kodu(kod)))
+    v = prace.zeptej_se_modelu(rezervace, zpravy, apartman, apartman_text, kod)
     print(json.dumps(v, ensure_ascii=False, indent=2))
 
 
