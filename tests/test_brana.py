@@ -3,7 +3,7 @@ import pathlib
 import re
 from datetime import timedelta
 
-from agent import config, hodiny
+from agent import config, hodiny, odchozi
 
 
 def _navrh(svet, text="Parking is on the street."):
@@ -84,3 +84,36 @@ def test_ostry_rezim_timeout_po_odeslani_bez_duplicity(svet, monkeypatch):
     hodiny.posun(minutes=3)
     svet.cyklus()
     assert len(svet.smoobu.odeslane) == 1
+
+
+def test_pojistka_proti_zacykleni_max_4_automaticke_odpovedi_za_24_h(svet, monkeypatch):
+    """B5: host a agent si nesmí donekonečna psát. Pátá automatická odpověď za 24 h jde jen ke schválení."""
+    monkeypatch.setattr(config, "REZIM", "ostre")
+    dnes = hodiny.dnes()
+    svet.smoobu.pridej_rezervaci("R1", dnes, dnes + timedelta(days=3))
+    svet.model.odpovez(text="You are welcome!")
+    for i in range(5):
+        svet.smoobu.napis_host("R1", f"Thanks again {i}")
+        svet.cyklus()
+        hodiny.posun(minutes=10)
+    assert len(svet.smoobu.odeslane) == 4
+    [z] = [z for z in svet.telegram.s_tlacitky() if "ZKONTROLUJ" in z["text"]]
+    assert "zacykl" in z["text"]
+    # po 24 hodinách od první odpovědi zase odpovídá sám
+    hodiny.posun(hours=24)
+    svet.smoobu.napis_host("R1", "One more question")
+    svet.cyklus()
+    assert len(svet.smoobu.odeslane) == 5
+
+
+def test_pojistka_nepocita_instrukce_k_prijezdu(svet, monkeypatch):
+    monkeypatch.setattr(config, "REZIM", "ostre")
+    dnes = hodiny.dnes()
+    svet.smoobu.pridej_rezervaci("R1", dnes, dnes + timedelta(days=3))
+    for _ in range(4):  # automaticky odeslané instrukce / opravy kódu (návrh bez zprávy hosta)
+        navrh_id = svet.db.novy_navrh("R1", "", "Hi, check-in details", "en", "hlavička")
+        odchozi.odeslat(svet.smoobu, svet.db, "R1", "Hi, check-in details", "automaticky", navrh_id=navrh_id)
+    svet.smoobu.napis_host("R1", "Where can we park?")
+    svet.model.odpovez(text="Parking is on the street.")
+    svet.cyklus()
+    assert svet.smoobu.odeslane[-1] == ("R1", "Parking is on the street.")

@@ -10,6 +10,7 @@ from .smoobu import Smoobu
 
 log = logging.getLogger("agent")
 MAX_POKUSU = 3
+MAX_AUTOMATICKYCH_ZA_DEN = 4  # B5: víc automatických odpovědí jedné rezervaci za 24 h = možná smyčka → ke schválení
 POZNAMKY_PATH = config.ROOT / "poznamky-k-hostum.yaml"
 
 
@@ -125,6 +126,10 @@ def _vyrid_jednu(smoobu, db, r, zpravy, zprava):
             model = config.MODEL_JEDNODUCHE
         vysledek = zeptej_se_modelu(r, zpravy, apartman, apartman_text, kod, model)
     rozhodnuti = vysledek["rozhodnuti"]
+    if rezim(db) == "ostre" and not vysledek.get("kontrola") and \
+            automatickych_odpovedi(db, r["id"]) >= MAX_AUTOMATICKYCH_ZA_DEN:
+        vysledek["kontrola"] = (f"rezervace už za 24 h dostala {MAX_AUTOMATICKYCH_ZA_DEN} automatické odpovědi – "
+                                "konverzace se možná zacyklila")
     db.zapis(r["id"], "rozhodnuti", dict(vysledek, hlavicka=_hlavicka(r), zprava_hosta=zprava.get("message", "")))
     odeslano = False
 
@@ -142,6 +147,15 @@ def _vyrid_jednu(smoobu, db, r, zpravy, zprava):
     _upozorni(db, r, zprava, vysledek, odeslano)
     if odeslano and kod and kod in vysledek["odpoved_hostovi"]:
         oznameni.posli(f"🔑 Agent poslal hostovi kód keyboxu {kod}\n{_hlavicka(r)}\nZkontroluj, že na keyboxu je nastavený.")
+
+
+def automatickych_odpovedi(db, reservation_id):
+    """Kolik automatických odpovědí na zprávy hosta (ne instrukcí) rezervace dostala za posledních 24 h."""
+    return db.conn.execute(
+        "SELECT COUNT(*) FROM odchozi o JOIN navrhy n ON n.id = o.navrh_id WHERE o.reservation_id = ? "
+        "AND o.zdroj = 'automaticky' AND o.stav IN ('odesila', 'odeslano', 'nejiste') AND o.cas >= ? "
+        "AND COALESCE(n.message_id, '') != ''",
+        (str(reservation_id), (hodiny.ted() - timedelta(hours=24)).isoformat(timespec="seconds"))).fetchone()[0]
 
 
 def zeptej_se_modelu(r, zpravy, apartman, apartman_text, kod, model=None):

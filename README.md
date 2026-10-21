@@ -83,6 +83,10 @@ Model skutečné kódy ani Wi-Fi nevidí: ve znalostní bázi i v konverzaci je 
 zbytek ze znalostní báze). Když v odpovědi zůstane značka bez hodnoty nebo číslo, které vypadá jako kód, agent ji sám
 nepošle a dá ji hostitelům ke kontrole.
 
+## Pojistka proti zacyklení
+V ostrém režimu agent jedné rezervaci pošle sám nejvýš 4 odpovědi za 24 hodin. Další odpověď dostanou hostitelé
+ke schválení („🔔 ZKONTROLUJ ODPOVĚĎ“), aby si agent s hostem (nebo s jiným robotem) nepsali donekonečna.
+
 ## Úspora tokenů
 - `ZDVORILOSTI_BEZ_MODELU=ano`: čisté „díky / 👍 / ok“ vyřídí pravidlo bez modelu (hotové věty v 8 jazycích).
 - `LEVNEJSI_MODEL_PRO_JEDNODUCHE=ano`: krátké zprávy bez otázky a prosby (např. čas příjezdu) vyřídí `MODEL_JEDNODUCHE`.
