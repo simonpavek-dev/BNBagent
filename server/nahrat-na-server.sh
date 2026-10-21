@@ -56,7 +56,7 @@ ssh "$CIL" "set -e
   systemctl restart airbnb-agent airbnb-panel
   sleep 5
   systemctl is-active airbnb-agent airbnb-panel
-  .venv/bin/python -m agent kontrola | head -6"
+  .venv/bin/python -m agent kontrola"
 
 echo
 echo "✅ Hotovo. Agent běží na serveru $SERVER."

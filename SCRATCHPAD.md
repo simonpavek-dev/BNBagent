@@ -3,6 +3,7 @@
 Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na konci aktualizovat.
 
 ## Hotovo
+- A3 (větev `p2-2-vypis-nasazeni`): `nahrat-na-server.sh` vypíše celou `kontrola` (dřív `head -6` uřízl „Smoobu HMAC“).
 - A1 (větev `p2-1-jen-sablona`): instrukce k příjezdu jen ze šablony; stará cesta přes model (`mozek.priprav_instrukce_k_prijezdu`)
   a přepínač `INSTRUKCE_ZE_SABLONY` odstraněny; chybějící údaj bytu = upozornění s návrhem.
 - Zkrácené zprávy (větev `p1-7-zkracene-zpravy`): Smoobu usekne text od „<“ → brána „<“ nahradí („‹“), po odeslání
@@ -48,7 +49,6 @@ Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na ko
 ## Další
 - Zprávy hostů: agent řeší nejnovější nezpracovanou zprávu hosta; víc nezodpovězených dotazů za sebou model vidí v konverzaci.
 - Simulátor scénářů: základ je fixture `svet` + `svet.cyklus()` + `hodiny.posun()`; rozšířit o scénáře.
-- `server/nahrat-na-server.sh`: výpis `kontrola | head -6` uřízne řádek „Smoobu HMAC“ → zvětšit.
 
 ## Zaseknuté
 - (nic)
