@@ -40,7 +40,7 @@ Znalostní báze = YAML v `znalostni-baze/` (skutečné byty nejsou v gitu). Tes
 1. Přečti `SCRATCHPAD.md` a posledních 10 commitů.
 2. Změna ve víc souborech = nejdřív plán a počkej na schválení.
 3. Nejdřív test, který problém ukáže, a ukaž, že padá.
-4. Oprava, celý pytest zelený, simulátor scénářů zelený (až bude).
+4. Oprava, celý pytest zelený včetně simulátoru scénářů (`tests/test_scenare.py`, oba režimy).
 5. Aktualizuj `SCRATCHPAD.md`, `LESSONS_LEARNED.md` (když něco trvalo přes 10 minut), `.env.example` a README.
 6. Commit na větev pojmenovanou podle kroku (např. `p1-4-brana`). Do `main` nepushuj bez souhlasu.
 7. Rozhodnutí, která může udělat jen hostitel, zapiš do `DECISIONS.md` s možnostmi a zastav se.
@@ -49,6 +49,8 @@ Znalostní báze = YAML v `znalostni-baze/` (skutečné byty nejsou v gitu). Tes
 - `tests/conftest.py` zakazuje síť a nastavuje smyšlené klíče – test nikdy nesmí sáhnout na Smoobu, Telegram ani Claude.
 - Fixture `svet`: FakeSmoobu / FakeTelegram / FakeModel (`tests/nahrazky.py`), smyšlený byt, hodiny zmrazené na
   po 2. 11. 2026 9:00; `svet.cyklus()` = celý `jeden_cyklus`. Čas nikdy přes `datetime.now()`, vždy `hodiny.ted()`.
+- Simulátor scénářů (`tests/test_scenare.py`): celé dny hosta po 10 minutách, režim návrhů i ostrý, přepínače jako na
+  serveru, společné zásady (`zasady`). Nové chování = nový krok ve scénáři, nová porucha = nový scénář.
 - Známé chyby = `xfail(strict=True)`; po opravě značku odstranit. Nový přepínač nastav i v `tests/conftest.py`.
 - Nikdy nespouštěj `python -m agent spustit` lokálně, když běží server (dva agenti = dvojí zprávy).
 - Na GitHub nesmí: `.env`, `data/`, skutečné byty v `znalostni-baze/apartmany/`, `poznamky-k-hostum.yaml`.

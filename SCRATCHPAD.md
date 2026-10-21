@@ -3,6 +3,9 @@
 Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na konci aktualizovat.
 
 ## Hotovo
+- A2 (větev `p2-6-simulator-scenaru`): `tests/test_scenare.py` – cesta hosta (dotaz → instrukce 10:00 → změna kódu
+  + oprava → díky → Wi-Fi přes značku → sleva/eskalace → odjezd), výpadek Smoobu 503 + Telegramu, timeout při odeslání,
+  zkrácená zpráva; vše v režimu návrhů i ostrém. Ověřeno, že rozbitá pojistka scénáře shodí.
 - B6 (větev `p2-5-hlaseni-odpovedi`): `HLASIT_AUTOMATICKE_ODPOVEDI=ano` → po každé automatické odpovědi
   oznámení do skupiny (zpráva hosta + odpověď, bez tlačítek).
 - B5 (větev `p2-4-pojistka-smycky`): v ostrém režimu nejvýš 4 automatické odpovědi na zprávy hosta jedné rezervaci
@@ -56,7 +59,6 @@ Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na ko
 
 ## Další
 - Zprávy hostů: agent řeší nejnovější nezpracovanou zprávu hosta; víc nezodpovězených dotazů za sebou model vidí v konverzaci.
-- Simulátor scénářů: základ je fixture `svet` + `svet.cyklus()` + `hodiny.posun()`; rozšířit o scénáře.
 
 ## Zaseknuté
 - (nic)

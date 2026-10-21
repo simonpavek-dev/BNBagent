@@ -4,14 +4,14 @@ Všechna data jsou smyšlená (byt, hosté, kódy)."""
 import requests
 
 from agent import config, hodiny, mozek, oznameni, telegram_ovladani
-from agent.smoobu import SmoobuLimit, SmoobuOvereni
+from agent.smoobu import SmoobuError, SmoobuLimit, SmoobuOvereni
 
 
 class FakeSmoobu:
     """Rezervace a konverzace v paměti. Zprávy: type 1 = host, type 2 = my (i automatické zprávy Smoobu).
 
     porucha: None | "timeout_po_odeslani" (zpráva odejde, ale klient dostane timeout)
-             | "timeout_bez_odeslani" (zpráva neodejde, klient dostane timeout) | "401" | "429".
+             | "timeout_bez_odeslani" (zpráva neodejde, klient dostane timeout) | "401" | "429" | "503".
     Porucha platí pro odesílání; porucha_cteni totéž pro čtení (rezervace, zprávy);
     cteni_po_odeslani = porucha čtení, která nastane až po odeslání zprávy (např. "401")."""
 
@@ -59,6 +59,8 @@ class FakeSmoobu:
             raise chyba
         if druh == "429":
             raise SmoobuLimit(f"{co} → 429: simulovaný limit")
+        if druh == "503":
+            raise SmoobuError(f"{co} → 503: Service Unavailable (simulovaný výpadek)")
 
     # ---- rozhraní jako agent.smoobu.Smoobu
     def reservations(self, od, do):
