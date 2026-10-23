@@ -6,6 +6,7 @@ Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na ko
 - Dávky zpráv (větev `p2-7-davky-zprav`, `POCKAT_NA_DALSI_ZPRAVY`): po zprávě hosta 5 min čekání (každá další
   zpráva odpočet obnoví, nejdéle 15 min od první, naléhavé hned – `trideni.je_nalehava`), pak jedna odpověď na celou
   dávku; všechny zprávy dávky se označí stejným stavem; hlavní smyčka se probudí přesně (`prace.konec_cekani`).
+  Nasazeno a zapnuto na serveru 23. 10. 20:03 (main `c06cde0`), první cykly bez chyb.
 - 21. 10. 17:13 nasazeno (main `d0e0529`) a přepnuto na `REZIM=ostre`, `HLASIT_AUTOMATICKE_ODPOVEDI=ano`;
   `INSTRUKCE_ZE_SABLONY` z `.env` odstraněn; v DB serveru není `rezim` (platí `.env`). První cykly bez chyb.
 - A2 (větev `p2-6-simulator-scenaru`): `tests/test_scenare.py` – cesta hosta (dotaz → instrukce 10:00 → změna kódu
