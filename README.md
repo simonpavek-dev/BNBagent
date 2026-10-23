@@ -83,6 +83,13 @@ Model skutečné kódy ani Wi-Fi nevidí: ve znalostní bázi i v konverzaci je 
 zbytek ze znalostní báze). Když v odpovědi zůstane značka bez hodnoty nebo číslo, které vypadá jako kód, agent ji sám
 nepošle a dá ji hostitelům ke kontrole.
 
+## Víc zpráv hosta za sebou = jedna odpověď
+S `POCKAT_NA_DALSI_ZPRAVY=ano` agent po zprávě hosta počká `POCKAT_NA_DALSI_ZPRAVY_MINUT` (5 minut), jestli host
+nenapíše ještě něco. Každá další zpráva odpočet spustí znovu; pak agent odpoví na všechny jednou zprávou (v Telegramu
+jsou u návrhu všechny zprávy hosta pohromadě). Nejdéle čeká 15 minut od první zprávy. Naléhavé zprávy (voda, oheň,
+kouř, plyn, host se nedostane dovnitř, nefunguje kód – 8 jazyků) vyřídí hned. Čas měří i podle vlastních hodin,
+takže jiné časové pásmo v datech Smoobu čekání nerozbije.
+
 ## Hlášení automatických odpovědí
 S `HLASIT_AUTOMATICKE_ODPOVEDI=ano` přijde po každé odpovědi, kterou agent v ostrém režimu poslal sám, do skupiny
 „✅ Vasil odpověděl hostovi sám“ se zprávou hosta i odpovědí – máte přehled a můžete případně opravit ručně.

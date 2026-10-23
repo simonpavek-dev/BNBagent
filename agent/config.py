@@ -46,6 +46,9 @@ ZDVORILOSTI_BEZ_MODELU = os.getenv("ZDVORILOSTI_BEZ_MODELU", "ne").strip().lower
 LEVNEJSI_MODEL_PRO_JEDNODUCHE = os.getenv("LEVNEJSI_MODEL_PRO_JEDNODUCHE", "ne").strip().lower() == "ano"
 MODEL_JEDNODUCHE = os.getenv("MODEL_JEDNODUCHE", "claude-sonnet-5").strip()
 PRIJEZDY_AUTOMATICKY = os.getenv("PRIJEZDY_AUTOMATICKY", "ne").strip().lower() == "ano"
+# ano = po zprávě hosta počkat POCKAT_NA_DALSI_ZPRAVY_MINUT, jestli nenapíše další, a odpovědět na všechny najednou
+POCKAT_NA_DALSI_ZPRAVY = os.getenv("POCKAT_NA_DALSI_ZPRAVY", "ne").strip().lower() == "ano"
+POCKAT_NA_DALSI_ZPRAVY_MINUT = float(os.getenv("POCKAT_NA_DALSI_ZPRAVY_MINUT", "5"))
 # ano = po každé odpovědi, kterou agent v ostrém režimu poslal sám, přijde do skupiny oznámení s textem
 HLASIT_AUTOMATICKE_ODPOVEDI = os.getenv("HLASIT_AUTOMATICKE_ODPOVEDI", "ne").strip().lower() == "ano"
 

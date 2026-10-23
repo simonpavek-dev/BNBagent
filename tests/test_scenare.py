@@ -13,7 +13,7 @@ from agent import config, hodiny, uklidy, znacky
 
 PONDELI = datetime(2026, 11, 2, 9, 0)  # = začátek simulace (conftest.ZACATEK)
 NA_SERVERU = ("PRIJEZDY_AUTOMATICKY", "ZDVORILOSTI_BEZ_MODELU", "OPRAVA_KODU_PO_UKLIDU", "HLASIT_AUTOMATICKE_ODPOVEDI",
-              "KONTROLA_KALENDARE")
+              "KONTROLA_KALENDARE", "POCKAT_NA_DALSI_ZPRAVY")
 
 
 @pytest.fixture(params=["navrh", "ostre"])
@@ -47,8 +47,9 @@ def schval_navrhy(svet):
                 svet.telegram.klikni(svet.smoobu, svet.db, "odeslat", int(data.split(":")[1]))
 
 
-def do_casu(svet, kdy):
-    """Agent běží každých 10 minut až do času kdy (včetně); v režimu návrhů hostitelé návrhy hned schvalují.
+def do_casu(svet, kdy, krok=600):
+    """Agent běží každých `krok` sekund (výchozí 10 min) až do času kdy (včetně); v režimu návrhů hostitelé návrhy
+    hned schvalují.
     Chybu cyklu zachytí a zapíše jako hlavní smyčka (__main__.spustit) – další cyklus běží dál."""
     while True:
         try:
@@ -59,7 +60,7 @@ def do_casu(svet, kdy):
             schval_navrhy(svet)
         if hodiny.ted() >= kdy:
             return
-        hodiny.posun(seconds=min(600, (kdy - hodiny.ted()).total_seconds()))
+        hodiny.posun(seconds=min(krok, (kdy - hodiny.ted()).total_seconds()))
 
 
 def odeslane(svet, obsahuje=""):
@@ -137,6 +138,20 @@ def test_cesta_hosta_od_dotazu_po_odjezd(scenar):
     assert len(svet.smoobu.odeslane) == 6
     hlaseni = [z for z in svet.telegram.zpravy if "odpověděl hostovi sám" in z["text"]]
     assert len(hlaseni) == (3 if svet.rezim == "ostre" else 0)  # parkování, díky, Wi-Fi
+    zasady(svet)
+
+
+def test_vic_zprav_za_sebou_jedna_odpoved(scenar):
+    svet = scenar
+    svet.smoobu.pridej_rezervaci("R1", (PONDELI + timedelta(days=2)).date(), (PONDELI + timedelta(days=4)).date())
+    svet.model.odpovez(text="Hi! Late arrival is no problem and you can park on the street.")
+    for minuta, text in ((0, "Hi!"), (2, "We will arrive late, around 23:00."), (4, "And where can we park?")):
+        do_casu(svet, PONDELI + timedelta(minutes=minuta), krok=180)   # agent jako na serveru po 3 minutách
+        svet.smoobu.napis_host("R1", text)
+    do_casu(svet, PONDELI.replace(minute=30), krok=180)
+    assert odeslane(svet) == ["Hi! Late arrival is no problem and you can park on the street."]
+    [volani] = [v for v in svet.model.volani if v["ucel"] == "zpráva hosta"]
+    assert all(t in volani["kontext"] for t in ("Hi!", "around 23:00", "where can we park"))
     zasady(svet)
 
 

@@ -1,4 +1,5 @@
 """Hlavní práce agenta: vyřizování zpráv a návrhy hodnocení hostů."""
+import json
 import logging
 from datetime import datetime, timedelta
 
@@ -10,6 +11,7 @@ from .smoobu import Smoobu
 
 log = logging.getLogger("agent")
 MAX_POKUSU = 3
+MAX_CEKANI_MINUT = 15  # víc zpráv hosta za sebou: nejdéle tolik od první zprávy se čeká na další
 MAX_AUTOMATICKYCH_ZA_DEN = 4  # B5: víc automatických odpovědí jedné rezervaci za 24 h = možná smyčka → ke schválení
 POZNAMKY_PATH = config.ROOT / "poznamky-k-hostum.yaml"
 
@@ -48,6 +50,66 @@ def _cekajici_zprava(zpravy, db=None, od=None):
     return None
 
 
+def _davka(zpravy, zprava, db, od):
+    """Zprávy hosta, na které se odpoví jednou zprávou: `zprava` a před ní všechny ještě nevyřízené zprávy hosta
+    (i přes naše zprávy mezi nimi, např. automatickou zprávu Smoobu) – po první vyřízenou nebo starší než `od`."""
+    i = next((i for i, m in enumerate(zpravy) if m.get("id") == zprava.get("id")), len(zpravy) - 1)
+    davka = []
+    for m in reversed(zpravy[:i + 1]):
+        if m.get("type") != 1:
+            continue
+        if m is not zprava and (db.zprava_vyrizena(m["id"]) or str(m.get("createdAt") or "") < od):
+            break
+        davka.append(m)
+    return list(reversed(davka))
+
+
+def _text_davky(davka):
+    return "\n".join((m.get("message") or "").strip() for m in davka)
+
+
+def _cas_zpravy(m):
+    try:
+        return datetime.strptime(str(m.get("createdAt") or "")[:19], "%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return None
+
+
+def _cekat(db, reservation_id, davka):
+    """Čekat ještě, jestli host nenapíše další zprávu? POCKAT_NA_DALSI_ZPRAVY_MINUT od jeho poslední zprávy, nejdéle
+    MAX_CEKANI_MINUT od první; naléhavé zprávy hned. Čas zprávy ze Smoobu se použije, jen když sedí s tím, kdy ji agent
+    poprvé viděl (jinak podle vlastních hodin – jiné časové pásmo nebo výpadek agenta čekání nerozbije)."""
+    if trideni.je_nalehava(_text_davky(davka)):
+        return False
+    ted = hodiny.ted()
+    klic = f"cekani_{reservation_id}"
+    stav = json.loads(db.nastaveni(klic) or "{}")
+    if stav.get("prvni_id") != davka[0]["id"]:
+        stav = {"prvni_id": davka[0]["id"], "zacatek": ted.isoformat(timespec="seconds")}
+    if stav.get("posledni_id") != davka[-1]["id"]:
+        stav.update(posledni_id=davka[-1]["id"], videno=ted.isoformat(timespec="seconds"))
+    db.uloz_nastaveni(klic, json.dumps(stav))
+    videno = datetime.fromisoformat(stav["videno"])
+    poslano = _cas_zpravy(davka[-1])
+    if not poslano or not videno - timedelta(minutes=10) <= poslano <= videno + timedelta(minutes=1):
+        poslano = videno
+    konec = min(poslano + timedelta(minutes=config.POCKAT_NA_DALSI_ZPRAVY_MINUT),
+                datetime.fromisoformat(stav["zacatek"]) + timedelta(minutes=MAX_CEKANI_MINUT))
+    if ted >= konec:
+        return False
+    nejblizsi = konec_cekani(db)
+    if not nejblizsi or konec < nejblizsi:
+        db.uloz_nastaveni("konec_cekani", konec.isoformat(timespec="seconds"))
+    log.info("Čekám na další zprávy hosta do %s (rez. %s)", konec.strftime("%H:%M:%S"), reservation_id)
+    return True
+
+
+def konec_cekani(db):
+    """Kdy skončí nejbližší čekání na další zprávy hosta (hlavní smyčka se v tu chvíli probudí), nebo None."""
+    hodnota = db.nastaveni("konec_cekani")
+    return datetime.fromisoformat(hodnota) if hodnota else None
+
+
 def _hranice_nevyrizenych(db):
     """Od kdy hledat zprávy hosta přebité naší (automatickou) zprávou – nastaví se při prvním běhu opravy."""
     od = db.nastaveni("cekajici_od")
@@ -74,22 +136,27 @@ def inicializace(smoobu, db):
 
 def vyrid_zpravy(smoobu, db):
     od = _hranice_nevyrizenych(db)
+    db.uloz_nastaveni("konec_cekani", "")
     for r in aktivni_rezervace(smoobu):
         zpravy = smoobu.messages(r["id"])
         zprava = _cekajici_zprava(zpravy, db, od)
         if not zprava or db.zprava_vyrizena(zprava["id"]):
             continue
+        davka = _davka(zpravy, zprava, db, od)  # víc zpráv hosta za sebou → jedna odpověď
+        if config.POCKAT_NA_DALSI_ZPRAVY and _cekat(db, r["id"], davka):
+            continue
         try:
             db.uloz_nastaveni("cinnost", f"Zpracovávám zprávu: {_hlavicka(r)}")
-            _vyrid_jednu(smoobu, db, r, zpravy, zprava)
+            _vyrid_jednu(smoobu, db, r, zpravy, zprava, davka)
         except Exception as e:  # jedna chybná zpráva nesmí zastavit ostatní
             log.exception("Chyba při vyřizování rezervace %s", r.get("id"))
             pokusy = db.zapocitej_chybu(zprava["id"], r["id"])
             if pokusy >= MAX_POKUSU:
-                db.oznac_zpravu(zprava["id"], r["id"], "selhalo")
+                for m in davka:
+                    db.oznac_zpravu(m["id"], r["id"], "selhalo")
                 oznameni.posli(
                     f"⚠️ Agent nedokázal vyřídit zprávu ({pokusy}× chyba), vyřiď ji prosím sám.\n"
-                    f"{_hlavicka(r)}\n\nZpráva hosta:\n{zprava.get('message', '')}\n\nChyba: {e}"
+                    f"{_hlavicka(r)}\n\nZpráva hosta:\n{_text_davky(davka)}\n\nChyba: {e}"
                 )
 
 
@@ -101,14 +168,17 @@ def _hlavicka(r):
     )
 
 
-def _vyrid_jednu(smoobu, db, r, zpravy, zprava):
+def _vyrid_jednu(smoobu, db, r, zpravy, zprava, davka=None):
+    davka = davka or [zprava]
+    host_text = _text_davky(davka)
     apt_id = (r.get("apartment") or {}).get("id")
     apartman, apartman_text = znalosti.apartman_podle_smoobu_id(apt_id)
     if not apartman_text:
-        db.oznac_zpravu(zprava["id"], r["id"], "chybi_znalosti")
+        for m in davka:
+            db.oznac_zpravu(m["id"], r["id"], "chybi_znalosti")
         oznameni.posli(
             f"❓ Nová zpráva, ale apartmán (Smoobu ID {apt_id}) nemá znalostní bázi – vyřiď sám.\n"
-            f"{_hlavicka(r)}\n\n{zprava.get('message', '')}"
+            f"{_hlavicka(r)}\n\n{host_text}"
         )
         return
 
@@ -130,7 +200,7 @@ def _vyrid_jednu(smoobu, db, r, zpravy, zprava):
             automatickych_odpovedi(db, r["id"]) >= MAX_AUTOMATICKYCH_ZA_DEN:
         vysledek["kontrola"] = (f"rezervace už za 24 h dostala {MAX_AUTOMATICKYCH_ZA_DEN} automatické odpovědi – "
                                 "konverzace se možná zacyklila")
-    db.zapis(r["id"], "rozhodnuti", dict(vysledek, hlavicka=_hlavicka(r), zprava_hosta=zprava.get("message", "")))
+    db.zapis(r["id"], "rozhodnuti", dict(vysledek, hlavicka=_hlavicka(r), zprava_hosta=host_text))
     odeslano = False
 
     if (rezim(db) == "ostre" and rozhodnuti in ("odpovedet", "eskalovat") and vysledek["odpoved_hostovi"].strip()
@@ -143,8 +213,10 @@ def _vyrid_jednu(smoobu, db, r, zpravy, zprava):
             db.uprav_navrh(navrh_id, stav="zastarale")
             log.warning("Ostrý režim – neodesláno: %s", zprava_brany)
 
-    db.oznac_zpravu(zprava["id"], r["id"], rozhodnuti)
-    _upozorni(db, r, zprava, vysledek, odeslano)
+    for m in davka:  # všechny zprávy dávky skončí ve stejném stavu
+        db.oznac_zpravu(m["id"], r["id"], rozhodnuti)
+    db.uloz_nastaveni(f"cekani_{r['id']}", "")
+    _upozorni(db, r, zprava, vysledek, odeslano, host_text)
     if odeslano and kod and kod in vysledek["odpoved_hostovi"]:
         oznameni.posli(f"🔑 Agent poslal hostovi kód keyboxu {kod}\n{_hlavicka(r)}\nZkontroluj, že na keyboxu je nastavený.")
 
@@ -175,8 +247,8 @@ def popis_kodu(kod):
     return "KÓD KEYBOXU PRO TUTO REZERVACI NENÍ ZNÁMÝ – pokud ho host potřebuje, eskaluj (značku [KÓD BYTU] nepiš)."
 
 
-def _upozorni(db, r, zprava, v, odeslano):
-    host_text = zprava.get("message", "").strip()
+def _upozorni(db, r, zprava, v, odeslano, host_text=None):
+    host_text = (host_text or zprava.get("message", "")).strip()
     hlavicka = _hlavicka(r)
     if v["rozhodnuti"] == "neodpovidat":
         log.info("Bez odpovědi (%s): %s", v["duvod"], hlavicka)

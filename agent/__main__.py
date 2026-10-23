@@ -162,6 +162,9 @@ def spustit(_args):
             try:
                 ted = jeden_cyklus(smoobu, db)
                 chyby_za_sebou = 0
+                konec = prace.konec_cekani(db)
+                if konec:  # host píše víc zpráv za sebou – odpovědět hned, jak skončí čekání, ne až za INTERVAL_MINUT
+                    dalsi_kontrola = min(dalsi_kontrola, time.time() + max(5, (konec - hodiny.ted()).total_seconds() + 2))
                 if spanek_od:
                     od = datetime.fromtimestamp(spanek_od)
                     if time.time() - spanek_od > 30 * 60:

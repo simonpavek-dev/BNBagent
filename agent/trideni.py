@@ -49,6 +49,36 @@ def nevyrizeny_text(zpravy):
     return " ".join(reversed(posledni))
 
 
+
+# ---------------------------------------------------------------- naléhavé zprávy (bez čekání na další zprávy hosta)
+
+# nouze a „nedostaneme se dovnitř“ v 8 jazycích; omyl nevadí – zpráva se jen vyřídí hned, bez čekání
+NALEHAVE = re.compile("|".join([
+    r"\bhelp\s*!|urgent|emergenc|\bfire\b|smoke|\bgas\b|leak|flood|police|ambulance|injur",                   # en
+    r"can'?t get in|cannot get in|can not get in|locked out|(can'?t|cannot|unable to) (open|enter|get into)",
+    r"(code|key|keybox|door|lock)[^.!?]{0,25}(not|n't) (work|open)",
+    r"nemůž(eme|u) se dostat|nejd(e|ou) otevřít|(kód|klíč|dveře|zámek)[^.!?]{0,25}(nefung|nejd)|nefunguje (kód|klíč)",
+    r"hoří|požár|kouř|plyn|teče voda|voda teče|vytop|polici|záchrank|pomoc\s*!|naléhav",                         # cs
+    r"nevieme sa dostať|nemôžeme sa dostať|nejde otvoriť|(kód|kľúč|dvere)[^.!?]{0,25}(nefung|nejd)",              # sk
+    r"horí|požiar|\bdym|tečie voda|polícia",
+    r"kommen nicht (rein|hinein)|nicht reinkommen|(code|schlüssel|tür|schloss)[^.!?]{0,25}(funktioniert|geht) nicht",
+    r"feuer|\bbrand\b|rauch|wasser läuft|wasserschaden|polizei|notfall|krankenwagen|hilfe\s*!",                  # de
+    r"non riusciamo (ad |a )?entrare|non possiamo entrare|(codice|chiave|porta)[^.!?]{0,25}non (funziona|si apre)",
+    r"non si apre|incendio|fuoco|fumo|perdita|allagat|polizia|emergenza|aiuto\s*!",                              # it
+    r"no (podemos|puedo) entrar|(código|codigo|llave|puerta)[^.!?]{0,25}no (funciona|abre|se abre)",
+    r"fuego|humo|fuga|inund|policía|ayuda\s*!",                                                                  # es
+    r"ne (peut|peux|pouvons) pas entrer|(code|clé|cle|porte)[^.!?]{0,25}ne (marche|fonctionne|s['’]ouvre) pas",
+    r"ne s['’]ouvre pas|incendie|\bfeu\b|fumée|fuite|inond|urgence|au secours|à l['’]aide",                       # fr
+    r"nie (możemy|mogę) (wejść|się dostać)|(kod|klucz|drzwi)[^.!?]{0,25}nie (działa|otwier)",
+    r"pożar|ogień|wyciek|zalan|policj|pogotowie|ratunku",                                                         # pl
+]), re.I)
+
+
+def je_nalehava(text):
+    """Nouze nebo host se nedostane dovnitř – agent nečeká, jestli host napíše ještě něco."""
+    return bool(NALEHAVE.search(text or ""))
+
+
 # ---------------------------------------------------------------- P1.3 zdvořilosti bez modelu
 
 MAX_DELKA_ZDVORILOSTI = 80

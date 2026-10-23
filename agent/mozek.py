@@ -20,7 +20,7 @@ def client():
 
 INSTRUKCE_ZPRAVY = """Jsi asistent hostitele krátkodobých pronájmů (Airbnb, Booking.com). Vyřizuješ zprávy od hostů jeho jménem.
 
-Dostaneš obecná pravidla hostitele, znalostní bázi konkrétního apartmánu, údaje o rezervaci a dosavadní konverzaci. Rozhodni, co udělat s poslední zprávou (nebo zprávami) od hosta:
+Dostaneš obecná pravidla hostitele, znalostní bázi konkrétního apartmánu, údaje o rezervaci a dosavadní konverzaci. Rozhodni, co udělat se zprávami hosta, na které ještě nikdo neodpověděl – host jich mohl napsat několik za sebou. Když odpovídáš, reaguj na všechny najednou jednou zprávou:
 
 - "odpovedet": na všechno, na co se host ptá, znáš odpověď ze znalostní báze a téma nepatří mezi ta, která je nutné eskalovat. Napiš hotovou odpověď.
   Buď aktivní: na poděkování, pozdrav, „ok“, „vše super“, hodnocení pobytu nebo oznámení (např. čas příjezdu) vždy krátce a přátelsky odpověz – jedna věta s emoji v jazyce hosta (např. „Rádi jsme pomohli, užijte si Prahu! 😊“). Oznámený čas příjezdu potvrď.
