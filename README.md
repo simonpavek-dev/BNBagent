@@ -166,6 +166,8 @@ Ostatní zprávy ve skupině Vasil ignoruje. Změny znalostní báze z Telegramu
   4. Ovládací panel: `ssh -N -L 8765:localhost:8765 root@IP_SERVERU` a v prohlížeči http://localhost:8765.
      Log: `ssh root@IP_SERVERU journalctl -u airbnb-agent -f`.
   - Agent nesmí běžet zároveň na Macu i na serveru. Po přesunu už `spustit-agenta.command` nespouštěj.
+  - Export pro analýzu (co agent neví, eskalace, úpravy návrhů): `server/export_analyzy.py`, příkaz je v jeho
+    hlavičce. Jen čte, jména hostů, kontakty a kódy nahradí značkami. Výsledný soubor do repa nepatří.
 
 ## Náklady
 - Smoobu: podle ceníku, na 10 bytů cca 100–150 €/měsíc

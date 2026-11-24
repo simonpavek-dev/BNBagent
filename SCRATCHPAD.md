@@ -84,8 +84,10 @@ Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na ko
 - Repo veřejné, historie se nepřepisuje, WhatsApp čísla zůstávají v `obecne.yaml` (`DECISIONS.md` D1).
 
 ## Další
-- Ověřit v datech serveru, že Smoobu neposílá vlastní zprávy před/po odjezdu (navody/automaticke-zpravy.md #5, #6).
-- Analýza eskalací a úprav návrhů ze serverové DB → doplnění KB; čeká na SSH přístup z Windows PC (nemá klíč ani rsync).
+- Analýza eskalací a úprav návrhů → doplnění KB: hostitel nechce SSH klíč z Windows PC, data pošle z Macu.
+  Export `server/export_analyzy.py` (jen čte, anonymizovaný JSON, větev `p3-4-analyza`) – spustit z Macu
+  (příkaz v hlavičce skriptu), soubor `vasil-export.json` přenést na Windows PC. Do gitu nesmí.
+  Export obsahuje i zprávy po odjezdu → ověřit, že Smoobu neposílá vlastní zprávy #5/#6 (navody/automaticke-zpravy.md).
 - C8: sledovat první automatické odpovědi (odchozi zdroj=automaticky, „🔔 ZKONTROLUJ“, eskalace) a dát přehled.
 - Zprávy hostů: agent řeší nejnovější nezpracovanou zprávu hosta; víc nezodpovězených dotazů za sebou model vidí v konverzaci.
 
