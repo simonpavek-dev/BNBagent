@@ -62,5 +62,6 @@ Výsledek: zprávy rozdělit – **večer před odjezdem v 18:00** informace k c
 další pobyt; **v den odjezdu** zvlášť prosba o hodnocení. Podmínka, aby to bylo v pořádku: sleva nesmí záviset na
 hodnocení – dostane ji každý vracející se host, texty na sebe neodkazují (zpráva o slevě nezmiňuje recenzi a naopak).
 Uplatnění jen přes platformu (platba mimo Airbnb/Booking je v `nikdy`): host napíše před další rezervací a hostitelé
-mu pošlou speciální nabídku na Airbnb. Návrh k potvrzení v P3.2: slevu zmiňovat jen hostům z Airbnb (Booking
-individuální slevu jednoduše neumí).
+mu pošlou speciální nabídku na Airbnb. Slevu zmiňovat jen hostům z Airbnb (Booking individuální slevu jednoduše
+neumí), prosba o hodnocení ve 12:00 v den odjezdu (po check-outu), pobyt na 1 noc bez večerní zprávy, prosba
+o hodnocení po eskalaci během pobytu jen ke schválení – hostitel potvrdil 24. 11. („pokračuj“ po plánu P3.2).

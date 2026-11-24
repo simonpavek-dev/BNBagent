@@ -54,6 +54,13 @@ HLASIT_AUTOMATICKE_ODPOVEDI = os.getenv("HLASIT_AUTOMATICKE_ODPOVEDI", "ne").str
 # ano = podpis nepíše model; kód ho doplní jen do první naší zprávy v konverzaci a do zpráv po skončení pobytu
 # (instrukce k příjezdu ho mají vždy) – podpis.py
 PODPIS_JEN_ZACATEK_A_KONEC = os.getenv("PODPIS_JEN_ZACATEK_A_KONEC", "ne").strip().lower() == "ano"
+# Zprávy k odjezdu (odjezdy.py, DECISIONS D6): večer před odjezdem check-out + poděkování + sleva pro vracející se
+# hosty z Airbnb (0 = bez slevy); v den odjezdu zvlášť prosba o hodnocení. Odejdou samy, hostitelé je mohou zrušit.
+ZPRAVA_PRED_ODJEZDEM = os.getenv("ZPRAVA_PRED_ODJEZDEM", "ne").strip().lower() == "ano"
+ZPRAVA_PRED_ODJEZDEM_HODINA = int(os.getenv("ZPRAVA_PRED_ODJEZDEM_HODINA", "18"))
+SLEVA_NA_DALSI_POBYT_PROCENT = int(os.getenv("SLEVA_NA_DALSI_POBYT_PROCENT", "0"))
+PROSBA_O_HODNOCENI = os.getenv("PROSBA_O_HODNOCENI", "ne").strip().lower() == "ano"
+PROSBA_O_HODNOCENI_HODINA = int(os.getenv("PROSBA_O_HODNOCENI_HODINA", "12"))
 
 # Aplikace úklidů (uklid.kolbl-apartments.cz) – účet agenta; prázdné = napojení vypnuté
 UKLIDY_URL = os.getenv("UKLIDY_URL", "").strip()

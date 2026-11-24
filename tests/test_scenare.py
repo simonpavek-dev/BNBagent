@@ -13,7 +13,8 @@ from agent import config, hodiny, uklidy, znacky
 
 PONDELI = datetime(2026, 11, 2, 9, 0)  # = začátek simulace (conftest.ZACATEK)
 NA_SERVERU = ("PRIJEZDY_AUTOMATICKY", "ZDVORILOSTI_BEZ_MODELU", "OPRAVA_KODU_PO_UKLIDU", "HLASIT_AUTOMATICKE_ODPOVEDI",
-              "KONTROLA_KALENDARE", "POCKAT_NA_DALSI_ZPRAVY", "PODPIS_JEN_ZACATEK_A_KONEC")
+              "KONTROLA_KALENDARE", "POCKAT_NA_DALSI_ZPRAVY", "PODPIS_JEN_ZACATEK_A_KONEC", "ZPRAVA_PRED_ODJEZDEM",
+              "PROSBA_O_HODNOCENI")
 PODPIS = "Test team\nWhatsApp: +000 000 000 000"  # = hostitel.podpis v conftest.OBECNE
 
 
@@ -22,6 +23,7 @@ def scenar(svet, monkeypatch, request):
     for prepinac in NA_SERVERU:
         monkeypatch.setattr(config, prepinac, True)
     monkeypatch.setattr(config, "REZIM", request.param)
+    monkeypatch.setattr(config, "SLEVA_NA_DALSI_POBYT_PROCENT", 5)
     monkeypatch.setattr(config, "UKLIDY_URL", "https://uklidy.test")
     monkeypatch.setattr(config, "UKLIDY_LOGIN", "test")
     monkeypatch.setattr(config, "UKLIDY_HESLO", "test")
@@ -142,9 +144,16 @@ def test_cesta_hosta_od_dotazu_po_odjezd(scenar):
     assert any("POTŘEBUJU TĚ" in z["text"] for z in svet.telegram.zpravy)
     assert odeslane(svet, "we will check and get back to you")
 
-    # Čt – odjezd: agent už nic dalšího neposílá
+    # St 18:00 – zpráva před odjezdem: check-out, poděkování a sleva pro vracející se (bez zmínky o hodnocení)
+    do_casu(svet, st.replace(hour=18, minute=10))
+    [rozlouceni] = odeslane(svet, "tomorrow is your departure day")
+    assert "check-out is by 10:00" in rozlouceni and "5 % off" in rozlouceni and "review" not in rozlouceni
+    assert rozlouceni.endswith(PODPIS)
+
+    # Čt 12:00 – prosba o hodnocení: host během pobytu eskaloval (sleva) → sama neodejde, jen ke schválení
     do_casu(svet, (st + timedelta(days=1)).replace(hour=14))
-    assert len(svet.smoobu.odeslane) == 6
+    assert len(odeslane(svet, "grateful for a review")) == (1 if svet.rezim == "navrh" else 0)  # návrhy hned ✅
+    assert len(svet.smoobu.odeslane) == (8 if svet.rezim == "navrh" else 7)
     hlaseni = [z for z in svet.telegram.zpravy if "odpověděl hostovi sám" in z["text"]]
     assert len(hlaseni) == (3 if svet.rezim == "ostre" else 0)  # parkování, díky, Wi-Fi
     zasady(svet)

@@ -52,6 +52,9 @@ Každou šablonu si vytvoř v češtině a v angličtině. Smoobu umí posílat 
 > doufáme, že jste se dobře zabydleli. Je vše v pořádku? Kdybyste cokoli potřebovali, dejte vědět.
 > Tipy na okolí: [obchod / restaurace]
 
+> **Zprávy č. 5 a 6 posílá agent** (přepínače `ZPRAVA_PRED_ODJEZDEM` a `PROSBA_O_HODNOCENI`, viz README).
+> Když je máte zapnuté v agentovi, ve Smoobu je vypněte – jinak host dostane obě zprávy dvakrát.
+
 ## 5. Večer před odjezdem – check-out
 **Kdy:** den před odjezdem v 18:00
 

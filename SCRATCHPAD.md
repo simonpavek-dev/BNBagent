@@ -3,6 +3,13 @@
 Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na konci aktualizovat.
 
 ## Hotovo
+- P3.2 zprávy k odjezdu (větev `p3-2-rozlouceni` z `p3-1-podpis`, `odjezdy.py`, DECISIONS D6): `ZPRAVA_PRED_ODJEZDEM`
+  (18:00 den před odjezdem: check-out + `odjezd.postup_en`, poděkování, Airbnb sleva `SLEVA_NA_DALSI_POBYT_PROCENT`),
+  `PROSBA_O_HODNOCENI` (12:00 v den odjezdu; po eskalaci během pobytu jen ke schválení). Připraví se 2 h předem
+  s ❌ Zrušit odeslání, po výpadku agenta nejvýš 3 h pozdě; 1 noc = bez večerní zprávy; když host ten den už dostal
+  zprávu na stejné téma (Smoobu), neposílá a hlásí. Podpis vždy. Zapnuto i v simulátoru scénářů (sleva 5 %).
+  Při nasazení na serveru: `ZPRAVA_PRED_ODJEZDEM=ano`, `SLEVA_NA_DALSI_POBYT_PROCENT=5`, `PROSBA_O_HODNOCENI=ano`
+  a ve Smoobu vypnout automatické zprávy č. 5 a 6 (pokud jsou zapnuté).
 - P3.1 podpis (větev `p3-1-podpis`, `PODPIS_JEN_ZACATEK_A_KONEC`, `podpis.py`, DECISIONS D5): podpis nepíše model,
   kód ho doplní do první naší zprávy v konverzaci, do zpráv po skončení pobytu a do instrukcí (vždy); jinde ho
   odstraní i s pozdravem. Platí pro odpovědi modelu, zdvořilosti, ✏️ texty hostitelů, návrhy od Vasila z Telegramu,
@@ -70,10 +77,7 @@ Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na ko
 - Repo veřejné, historie se nepřepisuje, WhatsApp čísla zůstávají v `obecne.yaml` (`DECISIONS.md` D1).
 
 ## Další
-- P3.2 (větev `p3-2-rozlouceni`, D6): večer před odjezdem 18:00 check-out + poděkování + sleva pro vracející se
-  (nezávisle na recenzi), v den odjezdu ve 12:00 prosba o hodnocení (při eskalaci během pobytu jen ke schválení);
-  šablony s výchozím textem v kódu, podpis vždy; u pobytu na 1 noc večerní zprávu vynechat; ověřit, že Smoobu
-  neposílá vlastní zprávy před/po odjezdu (navody/automaticke-zpravy.md #5, #6).
+- Ověřit v datech serveru, že Smoobu neposílá vlastní zprávy před/po odjezdu (navody/automaticke-zpravy.md #5, #6).
 - P3.3 (větev `p3-3-doporuceni-podniku`): nástroj Google Places (New) – top 3 podniky v okolí (≥ 4,0, ≥ 100 recenzí,
   otevřeno v den a čas dotazu, do 15 min pěšky), blok do zprávy vkládá kód; čeká na API klíč od hostitele.
 - Analýza eskalací a úprav návrhů ze serverové DB → doplnění KB; čeká na SSH přístup z Windows PC (nemá klíč ani rsync).

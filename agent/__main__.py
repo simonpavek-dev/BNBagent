@@ -17,7 +17,7 @@ import sys
 import time
 from datetime import datetime, timedelta
 
-from . import config, hodiny, kontext, navrhy, odchozi, oznameni, prace, telegram_ovladani, uklidy, znalosti
+from . import config, hodiny, kontext, navrhy, odchozi, odjezdy, oznameni, prace, telegram_ovladani, uklidy, znalosti
 from .smoobu import SmoobuOvereni
 
 
@@ -109,6 +109,7 @@ def jeden_cyklus(smoobu, db):
     _krok(db, "instrukce k příjezdu", prace.priprav_prijezdy, smoobu, db)
     if ted.hour >= config.PRIJEZD_HODINA:
         _krok(db, "instrukce na zítřek", prace.priprav_prijezdy, smoobu, db, kontext.dnes() + timedelta(days=1))
+    _krok(db, "zprávy k odjezdu", odjezdy.zkontroluj, smoobu, db)  # zpráva před odjezdem, prosba o hodnocení
     try:  # aplikace úklidů: změny kódů, problémy, je byt k příjezdu uklizený?
         uklidy.zkontroluj(smoobu, db)
     except uklidy.UklidyChyba as e:

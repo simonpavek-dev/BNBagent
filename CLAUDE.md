@@ -20,6 +20,7 @@ Znalostní báze = YAML v `znalostni-baze/` (skutečné byty nejsou v gitu). Tes
 - `trideni.py` – pravidla bez modelu: jednoduchá zpráva (→ levnější model), čistá zdvořilost (→ odpověď bez modelu), naléhavá zpráva (→ bez čekání na další); volá `prace`.
 - `znacky.py` – kódy a Wi-Fi v odpovědích hostům: model vidí a píše jen značky, hodnoty dosadí kód; volají `prace`, `navrhy`.
 - `podpis.py` – podpis jen v první naší zprávě a po skončení pobytu (doplňuje kód, model ne); volají `prace`, `navrhy`, `spravce`, `uklidy`.
+- `odjezdy.py` – zpráva večer před odjezdem (check-out, sleva pro vracející se) a prosba o hodnocení v den odjezdu ze šablony; volá hlavní smyčka.
 - `kody.py` – platný kód keyboxu pro rezervaci (aplikace úklidů / znalostní báze); volají `prace`, `spravce`.
 - `kontext.py` – text rezervace + konverzace pro model, dnešní datum; volají `prace`, `mozek`, `spravce`.
 - `znalosti.py` – načtení YAML znalostní báze (před modelem skrývá `keybox_kod`); volají `prace`, `uklidy`, `mozek`.

@@ -99,6 +99,21 @@ S `PODPIS_JEN_ZACATEK_A_KONEC=ano` podpis (`hostitel.podpis` v `obecne.yaml`) ne
 Ostatní odpovědi, odpovědi na „díky“, oprava kódu i texty hostitelů přes ✏️ jsou bez podpisu. Když model nebo hostitel
 podpis přesto napíše, agent ho z konce zprávy odstraní i s pozdravem před ním („Best regards,“).
 
+## Zprávy k odjezdu: rozloučení, sleva a prosba o hodnocení
+- `ZPRAVA_PRED_ODJEZDEM=ano`: večer před odjezdem v `ZPRAVA_PRED_ODJEZDEM_HODINA` (18:00) odejde hostovi připomínka
+  check-outu (čas a `odjezd.postup_en` ze znalostní báze), poděkování a hostům z Airbnb nabídka slevy
+  `SLEVA_NA_DALSI_POBYT_PROCENT` na další pobyt (host napíše před rezervací, vy mu pošlete speciální nabídku na Airbnb).
+  Pobyt na 1 noc ji nedostane (check-out má v instrukcích).
+- `PROSBA_O_HODNOCENI=ano`: v den odjezdu v `PROSBA_O_HODNOCENI_HODINA` (12:00, po check-outu) poděkování a prosba
+  o hodnocení. Když host během pobytu eskaloval (stížnost, porucha…), přijde vám jen ke schválení.
+
+Sleva **nesmí záviset na hodnocení** (pravidla recenzí Airbnb a Bookingu, `DECISIONS.md` D6) – proto jsou to dvě
+zprávy, které na sebe neodkazují. Obě se připraví 2 hodiny předem a do skupiny přijde oznámení s ❌ Zrušit odeslání.
+Text skládá agent ze šablony (anglicky, jinému jazyku ji model přeloží jako instrukce); šablony jde přepsat v
+`obecne.yaml` klíči `sablona_zpravy_pred_odjezdem`, `sablona_slevy_na_dalsi_pobyt`, `sablona_prosby_o_hodnoceni`.
+Když host ten den už od nás zprávu na stejné téma dostal (třeba automatickou zprávu Smoobu), agent ji nepošle a dá
+vědět – ve Smoobu proto vypněte automatické zprávy č. 5 a 6 z `navody/automaticke-zpravy.md`.
+
 ## Hlášení automatických odpovědí
 S `HLASIT_AUTOMATICKE_ODPOVEDI=ano` přijde po každé odpovědi, kterou agent v ostrém režimu poslal sám, do skupiny
 „✅ Vasil odpověděl hostovi sám“ se zprávou hosta i odpovědí – máte přehled a můžete případně opravit ručně.
