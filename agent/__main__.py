@@ -50,6 +50,9 @@ def kontrola(_args):
         spojeni_ok, text = prace.vytvor_smoobu().over_pripojeni()  # skutečné volání GET /api/apartments
         print(f"  {'✅' if spojeni_ok else '❌'} {text}")
         ok = ok and spojeni_ok
+    if config.DOPORUCENI_PODNIKU:
+        print(f"  {'✅' if config.GOOGLE_MAPS_API_KEY else '❌'} GOOGLE_MAPS_API_KEY (doporučení podniků)")
+        ok = ok and bool(config.GOOGLE_MAPS_API_KEY)
     if config.REZIM not in ("navrh", "ostre"):
         print("  ❌ REZIM musí být 'navrh' nebo 'ostre'")
         ok = False

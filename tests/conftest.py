@@ -14,12 +14,13 @@ def bez_skutecnych_sluzeb(monkeypatch, tmp_path):
     monkeypatch.setattr(config, "TELEGRAM_BOT_TOKEN", "")
     monkeypatch.setattr(config, "TELEGRAM_CHAT_ID", "")
     monkeypatch.setattr(config, "UKLIDY_HESLO", "")
+    monkeypatch.setattr(config, "GOOGLE_MAPS_API_KEY", "", raising=False)
     # přepínače a režimy na výchozí hodnoty – testy nesmí záviset na tom, co je zapnuté ve skutečném .env
     for prepinac in ("ZDVORILOSTI_BEZ_MODELU", "LEVNEJSI_MODEL_PRO_JEDNODUCHE", "PRIJEZDY_AUTOMATICKY",
                      "KONTROLA_KALENDARE", "NABIDKA_DRIVEJSIHO_CHECKINU",
                      "HLIDANI_UKLIDU_K_PRIJEZDU", "OPRAVA_KODU_PO_UKLIDU", "CHAT_PRES_TELEGRAM", "HODNOCENI_HOSTU",
                      "HLASIT_AUTOMATICKE_ODPOVEDI", "POCKAT_NA_DALSI_ZPRAVY", "PODPIS_JEN_ZACATEK_A_KONEC",
-                     "ZPRAVA_PRED_ODJEZDEM", "PROSBA_O_HODNOCENI"):
+                     "ZPRAVA_PRED_ODJEZDEM", "PROSBA_O_HODNOCENI", "DOPORUCENI_PODNIKU"):
         monkeypatch.setattr(config, prepinac, False, raising=False)
     monkeypatch.setattr(config, "SLEVA_NA_DALSI_POBYT_PROCENT", 0, raising=False)
     monkeypatch.setattr(config, "REZIM", "navrh")

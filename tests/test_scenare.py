@@ -14,7 +14,7 @@ from agent import config, hodiny, uklidy, znacky
 PONDELI = datetime(2026, 11, 2, 9, 0)  # = začátek simulace (conftest.ZACATEK)
 NA_SERVERU = ("PRIJEZDY_AUTOMATICKY", "ZDVORILOSTI_BEZ_MODELU", "OPRAVA_KODU_PO_UKLIDU", "HLASIT_AUTOMATICKE_ODPOVEDI",
               "KONTROLA_KALENDARE", "POCKAT_NA_DALSI_ZPRAVY", "PODPIS_JEN_ZACATEK_A_KONEC", "ZPRAVA_PRED_ODJEZDEM",
-              "PROSBA_O_HODNOCENI")
+              "PROSBA_O_HODNOCENI", "DOPORUCENI_PODNIKU")
 PODPIS = "Test team\nWhatsApp: +000 000 000 000"  # = hostitel.podpis v conftest.OBECNE
 
 
@@ -24,6 +24,7 @@ def scenar(svet, monkeypatch, request):
         monkeypatch.setattr(config, prepinac, True)
     monkeypatch.setattr(config, "REZIM", request.param)
     monkeypatch.setattr(config, "SLEVA_NA_DALSI_POBYT_PROCENT", 5)
+    monkeypatch.setattr(config, "GOOGLE_MAPS_API_KEY", "test")   # Google se nevolá – model je náhražka
     monkeypatch.setattr(config, "UKLIDY_URL", "https://uklidy.test")
     monkeypatch.setattr(config, "UKLIDY_LOGIN", "test")
     monkeypatch.setattr(config, "UKLIDY_HESLO", "test")
@@ -224,4 +225,33 @@ def test_smoobu_zkrati_zpravu_hostitele_hned_vi(scenar):
     assert "‹----" in text  # „<“ brána nahradila, jinak by Smoobu zbytek zahodilo
     [upozorneni] = [z for z in svet.telegram.zpravy if "ZKRÁTILO" in z["text"]]
     assert text in upozorneni["text"]  # celé znění k ručnímu odeslání
+    zasady(svet)
+
+
+def test_doporuceni_podniku_z_google_maps(scenar):
+    """Host se ptá na restauraci: seznam z Google Maps vloží kód místo značky. Značka bez nástroje hostovi neodejde."""
+    svet = scenar
+    svet.smoobu.pridej_rezervaci("R1", (PONDELI - timedelta(days=1)).date(), (PONDELI + timedelta(days=2)).date())
+    svet.smoobu.napis_my("R1", "Welcome to Prague!")
+    seznam = ("📍 Google Maps\n1. Pizza Test – ⭐ 4.8 (2 000) · 🚶 4 min · 🕒 11:00–23:00\n"
+              "https://maps.google.com/?cid=1")
+
+    def odpoved(text, doplnky):
+        svet.model.odpovedi["zpráva hosta"] = {"rozhodnuti": "odpovedet", "odpoved_hostovi": text,
+                                               "navrh_pro_hostitele": "", "duvod": "tipy", "jazyk_hosta": "en",
+                                               "_doplnky": doplnky}
+
+    # Po 9:00 – doporučení na večer: host dostane úvod a seznam (hodnocení, čas pěšky, otevřeno, odkaz) od kódu
+    svet.smoobu.napis_host("R1", "Could you recommend a restaurant for tonight?")
+    odpoved("Sure! Our top picks open tonight:\n\n[TIPY Z MAP 1]", {"[TIPY Z MAP 1]": seznam})
+    do_casu(svet, PONDELI.replace(minute=30))
+    assert odeslane(svet) == [f"Sure! Our top picks open tonight:\n\n{seznam}"]
+
+    # Po 10:00 – model napíše značku, aniž by zavolal nástroj: hostovi neodejde, hostitelé ji dostanou ke kontrole
+    do_casu(svet, PONDELI.replace(hour=10))
+    svet.smoobu.napis_host("R1", "And a good cafe for tomorrow morning?")
+    odpoved("Here you go:\n\n[TIPY Z MAP 1]", {})
+    do_casu(svet, PONDELI.replace(hour=10, minute=30))
+    assert len(svet.smoobu.odeslane) == 1
+    assert any("ZKONTROLUJ" in z["text"] and "[TIPY Z MAP 1]" in z["text"] for z in svet.telegram.zpravy)
     zasady(svet)

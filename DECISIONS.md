@@ -65,3 +65,13 @@ Uplatnění jen přes platformu (platba mimo Airbnb/Booking je v `nikdy`): host 
 mu pošlou speciální nabídku na Airbnb. Slevu zmiňovat jen hostům z Airbnb (Booking individuální slevu jednoduše
 neumí), prosba o hodnocení ve 12:00 v den odjezdu (po check-outu), pobyt na 1 noc bez večerní zprávy, prosba
 o hodnocení po eskalaci během pobytu jen ke schválení – hostitel potvrdil 24. 11. („pokračuj“ po plánu P3.2).
+
+## D7 – Doporučení podniků z Google Maps (rozhodnuto 24. 11. 2026)
+Hostitel chce, aby agent na dotaz hosta sám prošel Google Maps v okolí bytu a doporučil top 3 podniky: hodnocení
+aspoň 4 hvězdičky z rozumného počtu recenzí a otevírací doba, která sedí na den a čas, na který se host ptá.
+Možnosti zdroje: A) Google Places API (New) – placené (35 $ / 1 000 dotazů, 1 000 měsíčně zdarma), spolehlivá data
+o hodnocení a otevírací době; B) hledání na webu – zdarma, ale hodnocení a otevírací doby nespolehlivé; C) stahování
+stránek Google Maps – porušuje podmínky Googlu.
+
+Výsledek: **A** (plán schválen 24. 11.). Výchozí meze: hodnocení ≥ 4,0, ≥ 100 recenzí, ≤ 15 min pěšky (vše v `.env`).
+Seznam vkládá kód (značka [TIPY Z MAP n]), model hodnocení ani otevírací doby nepíše. Klíč Google zakládá hostitel.

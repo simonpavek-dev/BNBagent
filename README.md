@@ -114,6 +114,23 @@ Text skládá agent ze šablony (anglicky, jinému jazyku ji model přeloží ja
 Když host ten den už od nás zprávu na stejné téma dostal (třeba automatickou zprávu Smoobu), agent ji nepošle a dá
 vědět – ve Smoobu proto vypněte automatické zprávy č. 5 a 6 z `navody/automaticke-zpravy.md`.
 
+## Doporučení podniků z Google Maps
+S `DOPORUCENI_PODNIKU=ano` a klíčem `GOOGLE_MAPS_API_KEY` agent na dotaz hosta („kam na večeři?“, „dobrá kavárna
+na zítřek ráno?“) prohledá Google Maps kolem bytu a doporučí až 3 podniky, které:
+- mají hodnocení aspoň `DOPORUCENI_MIN_HODNOCENI` (4,0) z aspoň `DOPORUCENI_MIN_RECENZI` (100) recenzí,
+- jsou otevřené v den a čas, na který se host ptá (do 7 dní včetně svátků a výjimek podle Googlu),
+- jsou nejvýš `DOPORUCENI_MAX_PESKY_MIN` (15) minut pěšky.
+
+Pořadí je podle hodnocení váženého počtem recenzí. Seznam vkládá do zprávy kód (model hodnocení ani otevírací doby
+nepíše), např.:
+```
+📍 Google Maps
+1. Pizza Test – ⭐ 4.8 (2 000) · 🚶 4 min · 🕒 11:00–23:00
+https://maps.google.com/?cid=…
+```
+Když nic nevyhoví, Vasil se zeptá vás. Klíč: console.cloud.google.com → APIs & Services → zapnout **Places API (New)**
+→ Credentials → API key (omezit jen na Places API). Cena 35 $ za 1 000 dotazů, prvních 1 000 měsíčně zdarma.
+
 ## Hlášení automatických odpovědí
 S `HLASIT_AUTOMATICKE_ODPOVEDI=ano` přijde po každé odpovědi, kterou agent v ostrém režimu poslal sám, do skupiny
 „✅ Vasil odpověděl hostovi sám“ se zprávou hosta i odpovědí – máte přehled a můžete případně opravit ručně.

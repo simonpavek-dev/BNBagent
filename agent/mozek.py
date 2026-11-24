@@ -5,7 +5,7 @@ import logging
 
 import anthropic
 
-from . import config, hodiny, mapy, znalosti
+from . import config, hodiny, mapy, podniky, znalosti
 
 log = logging.getLogger("agent")
 _client = None
@@ -47,11 +47,20 @@ PODPIS_DOPLNI_SYSTEM = ("Drž se tónu z obecných pravidel. Podpis ani pozdrav 
                         "Rentys…“) – podpis podle pravidel doplní systém.")
 
 
+TIPY_Z_MAP = """- Doporučení podniku v okolí (restaurace, kavárna, bar, obchod, lékárna…): vždy zavolej nástroj doporuc_podniky s adresou apartmánu, druhem podniku (anglicky, konkrétně) a časem, kdy tam host chce jít (když ho neuvedl, aktuální datum a čas; „dnes večer“ = dnes 19:00). Hostovi napiš krátký úvod v jeho jazyce a pak přesně značku z výsledku nástroje (např. [TIPY Z MAP 1]) – systém na její místo vloží seznam. Hodnocení, otevírací doby, adresy ani odkazy podniků sám nepiš. Tohle je výjimka z pravidla, že na otázky mimo znalostní bázi eskaluješ. Když nástroj nic nenajde nebo selže, eskaluj."""
+
+
 def instrukce_zpravy():
-    """Instrukce pro rozhodnutí o zprávě; s PODPIS_JEN_ZACATEK_A_KONEC model podpis nepíše (doplní ho podpis.py)."""
+    """Instrukce pro rozhodnutí o zprávě; s PODPIS_JEN_ZACATEK_A_KONEC model podpis nepíše (doplní ho podpis.py),
+    s doporučením podniků (podniky.zapnuto) dostane pravidlo pro nástroj doporuc_podniky."""
+    instrukce = INSTRUKCE_ZPRAVY
     if config.PODPIS_JEN_ZACATEK_A_KONEC:
-        return INSTRUKCE_ZPRAVY.replace("Drž se tónu a podpisu z obecných pravidel.", PODPIS_DOPLNI_SYSTEM)
-    return INSTRUKCE_ZPRAVY
+        instrukce = instrukce.replace("Drž se tónu a podpisu z obecných pravidel.", PODPIS_DOPLNI_SYSTEM)
+    if podniky.zapnuto():
+        instrukce = instrukce.replace("(tipy na podniky v okolí se řídí obecnými pravidly)",
+                                      "(doporučení podniků v okolí viz pravidlo níže)")
+        instrukce = instrukce.replace('\n- Pole "duvod"', "\n" + TIPY_Z_MAP + '\n- Pole "duvod"')
+    return instrukce
 
 
 SCHEMA_ZPRAVY = {
@@ -136,12 +145,28 @@ NASTROJE_ZPRAVY = [
 MAX_KOL = 8
 
 
-def _spust_nastroj(blok):
+def nastroje_zpravy():
+    """Nástroje pro odpověď hostovi; doporuc_podniky jen se zapnutým DOPORUCENI_PODNIKU a klíčem Google."""
+    return NASTROJE_ZPRAVY + ([podniky.NASTROJ] if podniky.zapnuto() else [])
+
+
+def _spust_nastroj(blok, doplnky=None):
+    """Spustí nástroj modelu. Text, který do odpovědi vkládá kód (seznam z Google Maps), uloží do `doplnky`
+    pod značkou ([TIPY Z MAP 1]…) – model dostane jen značku a údaje k úvodu."""
+    doplnky = {} if doplnky is None else doplnky
     try:
-        if blok.name != "trasa":
+        if blok.name == "trasa":
+            vysledek = mapy.trasa(**blok.input)
+        elif blok.name == podniky.NASTROJ["name"]:
+            vysledek, seznam = podniky.doporuc(**blok.input)
+            if seznam:
+                znacka = f"[TIPY Z MAP {len(doplnky) + 1}]"
+                doplnky[znacka] = seznam
+                vysledek = dict(vysledek, znacka=znacka)
+        else:
             raise ValueError(f"Neznámý nástroj {blok.name}")
-        vysledek = json.dumps(mapy.trasa(**blok.input), ensure_ascii=False)
-        log.info("Nástroj trasa %s → %s", blok.input, vysledek)
+        vysledek = json.dumps(vysledek, ensure_ascii=False)
+        log.info("Nástroj %s %s → %s", blok.name, blok.input, vysledek)
         return {"type": "tool_result", "tool_use_id": blok.id, "content": vysledek}
     except Exception as e:
         log.warning("Nástroj %s selhal: %s", blok.name, e)
@@ -170,6 +195,7 @@ def _zavolej(instrukce, obecne_text, apartman_text, kontext, schema, nastroje=No
     )
     if nastroje:
         params["tools"] = nastroje
+    doplnky = {}  # značka → text, který do odpovědi vloží kód (seznam podniků z Google Maps)
 
     for _ in range(MAX_KOL):
         if model == "claude-opus-5":
@@ -188,7 +214,7 @@ def _zavolej(instrukce, obecne_text, apartman_text, kontext, schema, nastroje=No
             messages.append({"role": "assistant", "content": response.content})
             messages.append({
                 "role": "user",
-                "content": [_spust_nastroj(b) for b in response.content if b.type == "tool_use"],
+                "content": [_spust_nastroj(b, doplnky) for b in response.content if b.type == "tool_use"],
             })
             continue
         if response.stop_reason == "pause_turn":  # dlouhé hledání na webu – pokračovat
@@ -203,11 +229,14 @@ def _zavolej(instrukce, obecne_text, apartman_text, kontext, schema, nastroje=No
     text = next((b.text for b in reversed(response.content) if b.type == "text"), None)
     if not text:
         raise ModelNeodpovedel("Model nevrátil žádný text")
-    return json.loads(text)
+    vysledek = json.loads(text)
+    if doplnky:  # dosadí je prace.zeptej_se_modelu stejně jako kódy a Wi-Fi (znacky.zpracuj)
+        vysledek["_doplnky"] = doplnky
+    return vysledek
 
 
 def rozhodni_o_zprave(obecne_text, apartman_text, kontext, model=None):
-    return _zavolej(instrukce_zpravy(), obecne_text, apartman_text, kontext, SCHEMA_ZPRAVY, NASTROJE_ZPRAVY,
+    return _zavolej(instrukce_zpravy(), obecne_text, apartman_text, kontext, SCHEMA_ZPRAVY, nastroje_zpravy(),
                     "zpráva hosta", model=model)
 
 

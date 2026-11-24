@@ -3,6 +3,13 @@
 Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na konci aktualizovat.
 
 ## Hotovo
+- P3.3 doporučení podniků (větev `p3-3-doporuceni-podniku` z `p3-2-rozlouceni`, `podniky.py`, DECISIONS D7):
+  nástroj `doporuc_podniky` jen s `DOPORUCENI_PODNIKU=ano` a `GOOGLE_MAPS_API_KEY`; Places API (New) Text Search kolem
+  bytu, filtr kódem (≥ 4,0, ≥ 100 recenzí, v provozu, otevřeno v čase dotazu – do 7 dní currentOpeningHours, přes
+  půlnoc i nonstop, ≤ 15 min pěšky přes OSRM), pořadí bayesovsky vážené; seznam přes značku [TIPY Z MAP n]
+  (`mozek._zavolej` → `_doplnky` → `prace.zeptej_se_modelu` → `znacky.zpracuj`); značka bez nástroje = ke kontrole.
+  Skutečné volání Googlu netestováno (žádný klíč) – po nasazení vyzkoušet `zkouska` s dotazem na restauraci.
+  Při nasazení: na serveru `DOPORUCENI_PODNIKU=ano` + `GOOGLE_MAPS_API_KEY`, `kontrola` ukáže, jestli klíč je.
 - P3.2 zprávy k odjezdu (větev `p3-2-rozlouceni` z `p3-1-podpis`, `odjezdy.py`, DECISIONS D6): `ZPRAVA_PRED_ODJEZDEM`
   (18:00 den před odjezdem: check-out + `odjezd.postup_en`, poděkování, Airbnb sleva `SLEVA_NA_DALSI_POBYT_PROCENT`),
   `PROSBA_O_HODNOCENI` (12:00 v den odjezdu; po eskalaci během pobytu jen ke schválení). Připraví se 2 h předem
@@ -78,8 +85,6 @@ Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na ko
 
 ## Další
 - Ověřit v datech serveru, že Smoobu neposílá vlastní zprávy před/po odjezdu (navody/automaticke-zpravy.md #5, #6).
-- P3.3 (větev `p3-3-doporuceni-podniku`): nástroj Google Places (New) – top 3 podniky v okolí (≥ 4,0, ≥ 100 recenzí,
-  otevřeno v den a čas dotazu, do 15 min pěšky), blok do zprávy vkládá kód; čeká na API klíč od hostitele.
 - Analýza eskalací a úprav návrhů ze serverové DB → doplnění KB; čeká na SSH přístup z Windows PC (nemá klíč ani rsync).
 - C8: sledovat první automatické odpovědi (odchozi zdroj=automaticky, „🔔 ZKONTROLUJ“, eskalace) a dát přehled.
 - Zprávy hostů: agent řeší nejnovější nezpracovanou zprávu hosta; víc nezodpovězených dotazů za sebou model vidí v konverzaci.

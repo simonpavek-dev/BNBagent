@@ -25,6 +25,7 @@ Znalostní báze = YAML v `znalostni-baze/` (skutečné byty nejsou v gitu). Tes
 - `kontext.py` – text rezervace + konverzace pro model, dnešní datum; volají `prace`, `mozek`, `spravce`.
 - `znalosti.py` – načtení YAML znalostní báze (před modelem skrývá `keybox_kod`); volají `prace`, `uklidy`, `mozek`.
 - `mapy.py` – nástroj `trasa` (OpenStreetMap, pěší trasa); volá `mozek`.
+- `podniky.py` – nástroj `doporuc_podniky` (Google Places, top 3 otevřené v čase dotazu); seznam vkládá kód místo značky [TIPY Z MAP n]; volá `mozek`.
 - `databaze.py` – SQLite: zprávy, návrhy, události, nastavení, chat; používají všechny moduly.
 - `dashboard.py` + `dashboard.html` – ovládací panel na localhost:8765 (zvenku přes SSH tunel).
 - `import_smoobu.py` – předvyplnění znalostní báze a export historie konverzací (příkaz `nacist-smoobu`).

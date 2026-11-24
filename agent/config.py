@@ -61,6 +61,12 @@ ZPRAVA_PRED_ODJEZDEM_HODINA = int(os.getenv("ZPRAVA_PRED_ODJEZDEM_HODINA", "18")
 SLEVA_NA_DALSI_POBYT_PROCENT = int(os.getenv("SLEVA_NA_DALSI_POBYT_PROCENT", "0"))
 PROSBA_O_HODNOCENI = os.getenv("PROSBA_O_HODNOCENI", "ne").strip().lower() == "ano"
 PROSBA_O_HODNOCENI_HODINA = int(os.getenv("PROSBA_O_HODNOCENI_HODINA", "12"))
+# Doporučení podniků z Google Maps (podniky.py): nástroj pro model jen se zapnutým přepínačem a vyplněným klíčem
+DOPORUCENI_PODNIKU = os.getenv("DOPORUCENI_PODNIKU", "ne").strip().lower() == "ano"
+GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "").strip()
+DOPORUCENI_MIN_HODNOCENI = float(os.getenv("DOPORUCENI_MIN_HODNOCENI", "4.0"))
+DOPORUCENI_MIN_RECENZI = int(os.getenv("DOPORUCENI_MIN_RECENZI", "100"))
+DOPORUCENI_MAX_PESKY_MIN = int(os.getenv("DOPORUCENI_MAX_PESKY_MIN", "15"))
 
 # Aplikace úklidů (uklid.kolbl-apartments.cz) – účet agenta; prázdné = napojení vypnuté
 UKLIDY_URL = os.getenv("UKLIDY_URL", "").strip()

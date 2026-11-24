@@ -239,6 +239,8 @@ def zeptej_se_modelu(r, zpravy, apartman, apartman_text, kod, model=None):
     vysledek = mozek.rozhodni_o_zprave(
         znalosti.obecne_text(), znacky.schovej(apartman_text, apartman, hodnoty),
         znacky.schovej(kontext.sestav(r, zpravy, doplnek), apartman, hodnoty), model=model)
+    # seznam podniků z Google Maps ([TIPY Z MAP n]) dosadí kód stejně jako kódy – model ho nepíše
+    hodnoty.update(vysledek.pop("_doplnky", None) or {})
     return znacky.zpracuj(vysledek, hodnoty)
 
 
