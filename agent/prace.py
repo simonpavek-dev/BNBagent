@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 import yaml
 
-from . import config, hodiny, instrukce, kody, kontext, mozek, oznameni, trideni, uklidy, znacky, znalosti
+from . import config, hodiny, instrukce, kody, kontext, mozek, oznameni, podpis, trideni, uklidy, znacky, znalosti
 from .databaze import Databaze
 from .smoobu import Smoobu
 
@@ -195,6 +195,8 @@ def _vyrid_jednu(smoobu, db, r, zpravy, zprava, davka=None):
         if config.LEVNEJSI_MODEL_PRO_JEDNODUCHE and trideni.je_jednoducha(text_hosta):
             model = config.MODEL_JEDNODUCHE
         vysledek = zeptej_se_modelu(r, zpravy, apartman, apartman_text, kod, model)
+    # podpis jen v první naší zprávě a po skončení pobytu (PODPIS_JEN_ZACATEK_A_KONEC), doplňuje ho kód
+    vysledek["odpoved_hostovi"] = podpis.uprav(vysledek["odpoved_hostovi"], zpravy, r.get("departure"))
     rozhodnuti = vysledek["rozhodnuti"]
     if rezim(db) == "ostre" and not vysledek.get("kontrola") and \
             automatickych_odpovedi(db, r["id"]) >= MAX_AUTOMATICKYCH_ZA_DEN:

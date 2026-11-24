@@ -2,8 +2,8 @@
 
 Každý scénář běží dvakrát: v režimu návrhů (hostitelé každý návrh hned schválí ✅) a v ostrém režimu, s přepínači
 jako na serveru. Agent běží každých 10 minut simulovaného času. Po každém scénáři se kontrolují společné zásady:
-žádná zpráva hostovi neodešla dvakrát, žádná neobsahuje značku ([KÓD BYTU]…) ani „<“, každá zpráva hosta skončila
-v jednom stavu a (pokud scénář nesimuluje výpadek) žádný krok cyklu neskončil chybou.
+žádná zpráva hostovi neodešla dvakrát, žádná neobsahuje značku ([KÓD BYTU]…) ani „<“, podpis je ve zprávě nejvýš
+jednou, každá zpráva hosta skončila v jednom stavu a (pokud scénář nesimuluje výpadek) žádný krok cyklu neskončil chybou.
 Všechna data jsou smyšlená."""
 from datetime import datetime, timedelta
 
@@ -13,7 +13,8 @@ from agent import config, hodiny, uklidy, znacky
 
 PONDELI = datetime(2026, 11, 2, 9, 0)  # = začátek simulace (conftest.ZACATEK)
 NA_SERVERU = ("PRIJEZDY_AUTOMATICKY", "ZDVORILOSTI_BEZ_MODELU", "OPRAVA_KODU_PO_UKLIDU", "HLASIT_AUTOMATICKE_ODPOVEDI",
-              "KONTROLA_KALENDARE", "POCKAT_NA_DALSI_ZPRAVY")
+              "KONTROLA_KALENDARE", "POCKAT_NA_DALSI_ZPRAVY", "PODPIS_JEN_ZACATEK_A_KONEC")
+PODPIS = "Test team\nWhatsApp: +000 000 000 000"  # = hostitel.podpis v conftest.OBECNE
 
 
 @pytest.fixture(params=["navrh", "ostre"])
@@ -67,10 +68,16 @@ def odeslane(svet, obsahuje=""):
     return [text for _, text in svet.smoobu.odeslane if obsahuje in text]
 
 
+def s_podpisem(text):
+    """První naše zpráva v konverzaci – podpis doplní agent (PODPIS_JEN_ZACATEK_A_KONEC)."""
+    return f"{text}\n\n{PODPIS}"
+
+
 def zasady(svet, vypadek=False):
     assert len(set(svet.smoobu.odeslane)) == len(svet.smoobu.odeslane), "zpráva hostovi odešla dvakrát"
     for _, text in svet.smoobu.odeslane:
         assert not znacky.zbyle_znacky(text) and "<" not in text, text
+        assert text.count("Test team") <= 1, f"podpis ve zprávě víckrát: {text}"
     for zpravy in svet.smoobu.konverzace.values():
         for m in zpravy:
             if m["type"] == 1:
@@ -91,7 +98,8 @@ def test_cesta_hosta_od_dotazu_po_odjezd(scenar):
     svet.smoobu.napis_host("R1", "Hi, where can we park?")
     svet.model.odpovez(text="Hi Anna, you can park on the street right in front of the house.")
     do_casu(svet, PONDELI.replace(minute=30))
-    assert odeslane(svet, "park on the street")
+    assert odeslane(svet, "park on the street") == [s_podpisem("Hi Anna, you can park on the street right in front of "
+                                                               "the house.")]  # první naše zpráva = s podpisem
 
     # Po 18:00 – instrukce na zítřek se připraví a naplánují na 10:00, zatím nic neodejde
     do_casu(svet, PONDELI.replace(hour=18, minute=30))
@@ -102,6 +110,7 @@ def test_cesta_hosta_od_dotazu_po_odjezd(scenar):
     do_casu(svet, ut.replace(hour=10, minute=30))
     [instrukce] = odeslane(svet, "Keybox code")
     assert "Keybox code: 3333" in instrukce and "network TestNet / password test-heslo" in instrukce
+    assert instrukce.endswith(PODPIS)  # instrukce k příjezdu mají podpis vždy
 
     # Út 11:00 – uklízečky po úklidu nastaví nový kód → host dostane opravu
     uklid(svet, ut.date(), "4444")
@@ -120,9 +129,9 @@ def test_cesta_hosta_od_dotazu_po_odjezd(scenar):
     # Út 16:00 – po příjezdu Wi-Fi: model napíše značku, host dostane skutečné heslo
     do_casu(svet, ut.replace(hour=16))
     svet.smoobu.napis_host("R1", "What is the wifi password please?")
-    svet.model.odpovez(text="The Wi-Fi password is [WIFI HESLO]. Enjoy your stay!")
+    svet.model.odpovez(text="The Wi-Fi password is [WIFI HESLO]. Enjoy your stay!\n\nBest regards,\nRentys team")
     do_casu(svet, ut.replace(hour=16, minute=30))
-    assert odeslane(svet, "The Wi-Fi password is test-heslo.")
+    assert odeslane(svet, "The Wi-Fi password is test-heslo.") == ["The Wi-Fi password is test-heslo. Enjoy your stay!"]
 
     # St 10:00 – sleva: hostitelé dostanou eskalaci, host krátkou průběžnou odpověď
     do_casu(svet, st.replace(hour=10))
@@ -149,7 +158,7 @@ def test_vic_zprav_za_sebou_jedna_odpoved(scenar):
         do_casu(svet, PONDELI + timedelta(minutes=minuta), krok=180)   # agent jako na serveru po 3 minutách
         svet.smoobu.napis_host("R1", text)
     do_casu(svet, PONDELI.replace(minute=30), krok=180)
-    assert odeslane(svet) == ["Hi! Late arrival is no problem and you can park on the street."]
+    assert odeslane(svet) == [s_podpisem("Hi! Late arrival is no problem and you can park on the street.")]
     [volani] = [v for v in svet.model.volani if v["ucel"] == "zpráva hosta"]
     assert all(t in volani["kontext"] for t in ("Hi!", "around 23:00", "where can we park"))
     zasady(svet)
@@ -178,7 +187,7 @@ def test_vypadek_smoobu_a_telegramu(scenar):
     [eskalace] = [z for z in svet.telegram.zpravy if "POTŘEBUJU TĚ" in z["text"]]
     assert "Zpožděné upozornění" in eskalace["text"]
     assert [v["ucel"] for v in svet.model.volani] == ["zpráva hosta"]  # zpráva se zpracovala jednou
-    assert odeslane(svet) == ["Thank you, we will check and get back to you."]
+    assert odeslane(svet) == [s_podpisem("Thank you, we will check and get back to you.")]
     zasady(svet, vypadek=True)
 
 
@@ -191,7 +200,7 @@ def test_timeout_pri_odeslani_bez_dvoji_zpravy(scenar):
     do_casu(svet, PONDELI.replace(minute=10))
     svet.smoobu.porucha = None
     do_casu(svet, PONDELI.replace(hour=11))
-    assert odeslane(svet) == ["Yes, there is a hairdryer in the bathroom."]
+    assert odeslane(svet) == [s_podpisem("Yes, there is a hairdryer in the bathroom.")]
     zasady(svet)
 
 

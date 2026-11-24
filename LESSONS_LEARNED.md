@@ -44,6 +44,11 @@ by v testu psal do skutečné databáze.
 Po zapnutí funkce v `.env` začal test „vypnuto“ selhávat – `config` se načítá ze skutečného `.env`.
 → `tests/conftest.py` nastavuje všechny přepínače a režimy na výchozí hodnoty; nový přepínač přidat i tam.
 
+## Testy na Windows (24. 11.)
+Na Windows PC padalo 13 testů: `read_text()` bez kódování čte cp1250 a Windows nemá databázi časových pásem.
+→ `.venv\Scripts\python` s `PYTHONUTF8=1` a `pip install tzdata` do `.venv`. Nasazovat z Windows zatím nejde
+(chybí `rsync` a SSH klíč pro server) – nasazuje se z Macu.
+
 ## X-RateLimit-Retry-After je Unix čas, ne sekundy
 → Vždy číst dokumentaci API, ne odhadovat význam hlavičky podle názvu.
 

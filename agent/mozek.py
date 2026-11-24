@@ -43,6 +43,17 @@ Zásady:
 - Při čemkoli, co zní jako nouze (zdraví, požár, únik vody, bezpečnost), eskaluj a hostovi hned uveď tísňovou linku 112, pokud jde o ohrožení.
 - Pole "duvod" piš česky pro hostitele, 1–2 věty."""
 
+PODPIS_DOPLNI_SYSTEM = ("Drž se tónu z obecných pravidel. Podpis ani pozdrav na konec nepiš (žádné „Best regards, "
+                        "Rentys…“) – podpis podle pravidel doplní systém.")
+
+
+def instrukce_zpravy():
+    """Instrukce pro rozhodnutí o zprávě; s PODPIS_JEN_ZACATEK_A_KONEC model podpis nepíše (doplní ho podpis.py)."""
+    if config.PODPIS_JEN_ZACATEK_A_KONEC:
+        return INSTRUKCE_ZPRAVY.replace("Drž se tónu a podpisu z obecných pravidel.", PODPIS_DOPLNI_SYSTEM)
+    return INSTRUKCE_ZPRAVY
+
+
 SCHEMA_ZPRAVY = {
     "type": "object",
     "properties": {
@@ -196,14 +207,14 @@ def _zavolej(instrukce, obecne_text, apartman_text, kontext, schema, nastroje=No
 
 
 def rozhodni_o_zprave(obecne_text, apartman_text, kontext, model=None):
-    return _zavolej(INSTRUKCE_ZPRAVY, obecne_text, apartman_text, kontext, SCHEMA_ZPRAVY, NASTROJE_ZPRAVY, "zpráva hosta",
-                    model=model)
+    return _zavolej(instrukce_zpravy(), obecne_text, apartman_text, kontext, SCHEMA_ZPRAVY, NASTROJE_ZPRAVY,
+                    "zpráva hosta", model=model)
 
 
 INSTRUKCE_PREKLAD = """Přelož zprávu s instrukcemi k příjezdu do jazyka hosta. Překládej věrně větu po větě, nic nepřidávej
 ani nevynechávej. Značky ⟦1⟧, ⟦2⟧… zastupují adresu, Wi-Fi a kódy – každou opiš PŘESNĚ jednou na stejné místo,
-nic do nich nepiš ani je nepřekládej. Časy, telefonní čísla, šipky a emoji opiš beze změny. Podpis „Rentys team“
-nepřekládej. Vrať jen přeloženou zprávu."""
+nic do nich nepiš ani je nepřekládej. Časy, telefonní čísla, šipky a emoji opiš beze změny. Název „Rentys“ a jména
+v podpisu nepřekládej. Vrať jen přeloženou zprávu."""
 
 SCHEMA_PREKLAD = {"type": "object", "properties": {"zprava": {"type": "string"}},
                   "required": ["zprava"], "additionalProperties": False}
@@ -218,6 +229,8 @@ def preloz_instrukce(text, jazyk_hosta):
 def priprav_zpravu_hostitele(text_hostitele, jazyk_hosta):
     """Z hostitelova (klidně českého a stručného) textu udělá hotovou zprávu v jazyce hosta."""
     podpis = (znalosti.obecne().get("hostitel") or {}).get("podpis", "")
+    if config.PODPIS_JEN_ZACATEK_A_KONEC:  # podpis doplní podpis.uprav podle konverzace
+        podpis = "žádný – podpis ani pozdrav na konec nepiš, doplní ho systém"
     response = client().messages.create(
         model=config.MODEL,
         max_tokens=4000,

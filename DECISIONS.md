@@ -42,3 +42,25 @@ s návrhem; B) hostovi nic, dokud neodpoví hostitelé.
 
 Výsledek: **A** (doporučení, hostitel schválil plán bez výhrady) – chování jako dosud. Změna = jen úprava v
 `prace._vyrid_jednu` (ostrý režim posílá i `eskalovat`), kdykoli na pokyn hostitele.
+
+## D5 – Podpis ve zprávách hostům (rozhodnuto 24. 11. 2026)
+Dosud byl „Rentys team“ + WhatsApp Simon a Michael pod každou zprávou. Hostitel chce podpis jen při zahájení
+a ukončení konverzace, ve tvaru „Rentys – …“.
+Možnosti textu: A) „Rentys team“, B) „Rentys Prague“, C) „Rentys – Simon & Michael“ a pod tím WhatsApp čísla.
+Instrukce k příjezdu (uprostřed konverzace): A) dál s plným podpisem, B) bez podpisu.
+
+Výsledek: text **C**, instrukce **A** (s WhatsApp čísly). Podpis doplňuje kód (`podpis.py`, přepínač
+`PODPIS_JEN_ZACATEK_A_KONEC`): první naše zpráva v konverzaci, zprávy po skončení pobytu, instrukce k příjezdu
+a rozlučkové zprávy (P3.2). Text podpisu se mění v `obecne.yaml` na serveru (přes „Vasile, …“), ne v gitu.
+
+## D6 – Zpráva před odjezdem, prosba o hodnocení a sleva na další pobyt (rozhodnuto 24. 11. 2026)
+Hostitel navrhl 5% slevu na další pobyt výměnou za hodnocení. Pravidla recenzí Airbnb zakazují dávat cokoli
+hodnotného (slevu, refundaci) výměnou za recenzi – hrozí smazání recenzí a omezení účtu; Booking má podobné pravidlo.
+Možnosti: A) jen prosba o hodnocení, B) sleva pro všechny vracející se hosty nezávisle na recenzi, C) sleva za hodnocení.
+
+Výsledek: zprávy rozdělit – **večer před odjezdem v 18:00** informace k check-outu, poděkování a nabídka slevy na
+další pobyt; **v den odjezdu** zvlášť prosba o hodnocení. Podmínka, aby to bylo v pořádku: sleva nesmí záviset na
+hodnocení – dostane ji každý vracející se host, texty na sebe neodkazují (zpráva o slevě nezmiňuje recenzi a naopak).
+Uplatnění jen přes platformu (platba mimo Airbnb/Booking je v `nikdy`): host napíše před další rezervací a hostitelé
+mu pošlou speciální nabídku na Airbnb. Návrh k potvrzení v P3.2: slevu zmiňovat jen hostům z Airbnb (Booking
+individuální slevu jednoduše neumí).

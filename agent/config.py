@@ -51,6 +51,9 @@ POCKAT_NA_DALSI_ZPRAVY = os.getenv("POCKAT_NA_DALSI_ZPRAVY", "ne").strip().lower
 POCKAT_NA_DALSI_ZPRAVY_MINUT = float(os.getenv("POCKAT_NA_DALSI_ZPRAVY_MINUT", "5"))
 # ano = po každé odpovědi, kterou agent v ostrém režimu poslal sám, přijde do skupiny oznámení s textem
 HLASIT_AUTOMATICKE_ODPOVEDI = os.getenv("HLASIT_AUTOMATICKE_ODPOVEDI", "ne").strip().lower() == "ano"
+# ano = podpis nepíše model; kód ho doplní jen do první naší zprávy v konverzaci a do zpráv po skončení pobytu
+# (instrukce k příjezdu ho mají vždy) – podpis.py
+PODPIS_JEN_ZACATEK_A_KONEC = os.getenv("PODPIS_JEN_ZACATEK_A_KONEC", "ne").strip().lower() == "ano"
 
 # Aplikace úklidů (uklid.kolbl-apartments.cz) – účet agenta; prázdné = napojení vypnuté
 UKLIDY_URL = os.getenv("UKLIDY_URL", "").strip()

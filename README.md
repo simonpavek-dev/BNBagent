@@ -90,6 +90,15 @@ jsou u návrhu všechny zprávy hosta pohromadě). Nejdéle čeká 15 minut od p
 kouř, plyn, host se nedostane dovnitř, nefunguje kód – 8 jazyků) vyřídí hned. Čas měří i podle vlastních hodin,
 takže jiné časové pásmo v datech Smoobu čekání nerozbije.
 
+## Podpis jen na začátku a na konci konverzace
+S `PODPIS_JEN_ZACATEK_A_KONEC=ano` podpis (`hostitel.podpis` v `obecne.yaml`) nepíše model, ale doplní ho agent:
+- do první zprávy, kterou hostovi v konverzaci posíláme (když konverzaci zahájila automatická zpráva Smoobu, už ne),
+- do zpráv po skončení pobytu (den po odjezdu a později),
+- do instrukcí k příjezdu vždy (host u dveří má po ruce WhatsApp).
+
+Ostatní odpovědi, odpovědi na „díky“, oprava kódu i texty hostitelů přes ✏️ jsou bez podpisu. Když model nebo hostitel
+podpis přesto napíše, agent ho z konce zprávy odstraní i s pozdravem před ním („Best regards,“).
+
 ## Hlášení automatických odpovědí
 S `HLASIT_AUTOMATICKE_ODPOVEDI=ano` přijde po každé odpovědi, kterou agent v ostrém režimu poslal sám, do skupiny
 „✅ Vasil odpověděl hostovi sám“ se zprávou hosta i odpovědí – máte přehled a můžete případně opravit ručně.

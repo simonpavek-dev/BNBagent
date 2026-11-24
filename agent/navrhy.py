@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import logging
 import re
 
-from . import hodiny, mozek, odchozi, oznameni, uklidy, znacky
+from . import config, hodiny, mozek, odchozi, oznameni, podpis, uklidy, znacky
 
 log = logging.getLogger("agent")
 PROSLE_PO_HODINACH = 3  # naplánovanou zprávu starší než tohle už neposílat
@@ -82,6 +82,16 @@ def _odjezd(navrh):
     return m.group(1) if m else None
 
 
+def _konverzace(reservation_id):
+    """Konverzace s hostem ze Smoobu, nebo None, když ji teď nejde přečíst (podpis se pak nepřidá)."""
+    from . import prace  # prace importuje navrhy až za běhu – tady stejně
+    try:
+        return prace.vytvor_smoobu().messages(reservation_id)
+    except Exception as e:
+        log.warning("Konverzaci rezervace %s nejde přečíst (podpis): %s", reservation_id, e)
+        return None
+
+
 def _predbehnuto(zpravy, navrh):
     """Proč návrh odpovědi už neplatí: host mezitím napsal, nebo někdo odpověděl až PO vzniku návrhu.
     Naše zprávy z doby před návrhem (např. automatická zpráva Smoobu) ho nezneplatní. Jinak None."""
@@ -152,6 +162,8 @@ def zahodit(db, navrh, kdo=""):
 def nahradit(db, puvodni, text_hostitele, kdo=""):
     """Z hostitelova textu udělá zprávu v jazyce hosta jako nový návrh (i s tlačítky v Telegramu)."""
     hotovy = mozek.priprav_zpravu_hostitele(text_hostitele, puvodni["jazyk"])
+    if config.PODPIS_JEN_ZACATEK_A_KONEC:  # podpis jen v první naší zprávě a po skončení pobytu
+        hotovy = podpis.uprav(hotovy, _konverzace(puvodni["reservation_id"]), _odjezd(puvodni))
     db.uprav_navrh(puvodni["id"], stav="nahrazeno")
     oznameni.odeber_tlacitka(puvodni["tg_message_id"])
     # message_id prázdné = hostitelův vlastní text, před odesláním se nekontroluje, jestli je konverzace aktuální

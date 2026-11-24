@@ -8,7 +8,7 @@ je_zdvorilost + odpoved_na_zdvorilost: čisté „díky / 👍 / ok“ vyřídí
 """
 import re
 
-from . import hodiny, kontext, znalosti
+from . import config, hodiny, kontext, znalosti
 
 MAX_DELKA = 160
 OTAZKA = re.compile(r"[?¿]")
@@ -142,6 +142,8 @@ def odpoved_na_zdvorilost(rezervace, zpravy):
     faze = 0 if prijezd and dnes < prijezd else (2 if odjezd and dnes >= odjezd else 1)
     hostitel = znalosti.obecne().get("hostitel") or {}
     podpis = str(hostitel.get("podpis_kratky") or str(hostitel.get("podpis") or "").strip().split("\n")[0]).strip()
+    if config.PODPIS_JEN_ZACATEK_A_KONEC:
+        podpis = ""  # podpis doplní podpis.uprav jen na začátku a na konci konverzace
     return {"rozhodnuti": "odpovedet", "odpoved_hostovi": f"{ODPOVEDI[jazyk][faze]}\n{podpis}".strip(),
             "navrh_pro_hostitele": "", "jazyk_hosta": jazyk,
             "duvod": "Krátká zdvořilost hosta – odpověď z hotových vět, bez modelu."}

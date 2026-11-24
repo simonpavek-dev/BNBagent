@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 import yaml
 
-from . import config, hodiny, kontext, mozek, oznameni, prace, uklidy
+from . import config, hodiny, kontext, mozek, oznameni, podpis, prace, uklidy
 
 log = logging.getLogger("agent")
 ZALOHY_DIR = config.DATA_DIR / "zalohy"
@@ -201,11 +201,15 @@ def _spust(db, nazev, vstup):
         return json.dumps([p for p in uklidy.pobyty() if vstup["od"] <= (p["datum"] or "") <= vstup["do"]], ensure_ascii=False)
     if nazev == "navrhni_zpravu_hostovi":
         from .navrhy import TLACITKA_NAVRHU
-        r = prace.vytvor_smoobu().reservation(vstup["reservation_id"])
+        smoobu = prace.vytvor_smoobu()
+        r = smoobu.reservation(vstup["reservation_id"])
         hlavicka = prace._hlavicka(r)
-        navrh_id = db.novy_navrh(r["id"], "", vstup["text"], r.get("language") or "", hlavicka)
+        text = vstup["text"]
+        if config.PODPIS_JEN_ZACATEK_A_KONEC:  # podpis jen v první naší zprávě a po skončení pobytu
+            text = podpis.uprav(text, smoobu.messages(r["id"]), r.get("departure"))
+        navrh_id = db.novy_navrh(r["id"], "", text, r.get("language") or "", hlavicka)
         db.uprav_navrh(navrh_id, tg_message_id=oznameni.posli(
-            f"✍️ NÁVRH ZPRÁVY (z pokynu hostitele)\n{hlavicka}\n\n{vstup['text']}", TLACITKA_NAVRHU(navrh_id), navrh_id=navrh_id))
+            f"✍️ NÁVRH ZPRÁVY (z pokynu hostitele)\n{hlavicka}\n\n{text}", TLACITKA_NAVRHU(navrh_id), navrh_id=navrh_id))
         return f"Návrh {navrh_id} je ve skupině ke schválení."
     if nazev == "odeslane_zpravy":
         return json.dumps([{"cas": cas, "rezervace": rid, "zdroj": zdroj, "stav": stav,

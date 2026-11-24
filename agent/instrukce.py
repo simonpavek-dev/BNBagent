@@ -6,7 +6,7 @@ dostane zprávu bez modelu; ostatním ji model jen přeloží. Adresu, název a 
 ⟦1⟧, ⟦2⟧… a po překladu je vrátí v přesném původním znění. Když značka nebo klíčový údaj v překladu chybí,
 pošle se anglická verze.
 """
-from . import mozek, znalosti
+from . import config, mozek, znalosti
 
 ANGLICTINA = ("en", "english", "angličtina", "anglictina")
 
@@ -114,5 +114,7 @@ def oprava_kodu(rezervace, novy_kod):
     """Zpráva hostovi o změně kódu keyboxu (varianta B, DECISIONS.md D3). Kód dosadí kód, model nanejvýš přeloží.
     Vrací (zpráva, jazyk, poznámka pro hostitele)."""
     podpis = str((znalosti.obecne().get("hostitel") or {}).get("podpis") or "").strip()
-    text = OPRAVA_KODU.format(jmeno=_jmeno(rezervace), kod=novy_kod, podpis=podpis)
+    if config.PODPIS_JEN_ZACATEK_A_KONEC:
+        podpis = ""  # oprava kódu je uprostřed konverzace – podpis mají instrukce, ne oprava
+    text = OPRAVA_KODU.format(jmeno=_jmeno(rezervace), kod=novy_kod, podpis=podpis).strip()
     return _preloz(text, _jazyk(rezervace), [novy_kod], [novy_kod])

@@ -20,7 +20,7 @@ from datetime import datetime, time as cas, timedelta
 
 import requests
 
-from . import config, hodiny, kontext, oznameni, znalosti
+from . import config, hodiny, kontext, oznameni, podpis, znalosti
 from .databaze import Databaze
 
 log = logging.getLogger("agent")
@@ -280,6 +280,7 @@ def _nabidni_drivejsi_checkin(smoobu, db):
             continue  # instrukce s kódem host ještě nemá
         jazyk = _instrukce(db, r["id"]).get("jazyk_hosta") or r.get("language") or "angličtina"
         text = mozek.priprav_zpravu_hostitele(TEXT_DRIVEJSI_CHECKIN.format(check_in=check_in), jazyk)
+        text = podpis.uprav(text, zpravy, r.get("departure"))  # uprostřed konverzace = bez podpisu
         hlavicka = prace._hlavicka(r)
         db.uloz_nastaveni(f"drivejsi_{r['id']}", ted.isoformat(timespec="seconds"))
         # vždy jen návrh ke schválení – i v ostrém režimu (přání hostitele)
