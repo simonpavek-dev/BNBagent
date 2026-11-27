@@ -75,3 +75,15 @@ stránek Google Maps – porušuje podmínky Googlu.
 
 Výsledek: **A** (plán schválen 24. 11.). Výchozí meze: hodnocení ≥ 4,0, ≥ 100 recenzí, ≤ 15 min pěšky (vše v `.env`).
 Seznam vkládá kód (značka [TIPY Z MAP n]), model hodnocení ani otevírací doby nepíše. Klíč Google zakládá hostitel.
+
+## D8 – Jak se prokáže vracející se host kvůli slevě (rozhodnuto 27. 11. 2026)
+Možnosti: 1) host napíše do konverzace minulého pobytu (stejný účet = ověřeno), záložně číslo rezervace (Smoobu ho má
+u všech rezervací od 27. 8. 2026 jako `reference-id`); 2) osobní kód RENTYS-XXXX, který Vasil vydá a eviduje (tabulka);
+3) screenshot ubytování (nedoporučeno – nejde ověřit, dá se upravit).
+Ověřeno 27. 11.: Airbnb dovolí hostovi psát hostiteli i po skončení pobytu (nápověda Airbnb „Contacting hosts“);
+Booking jen 66 dní po odjezdu (hostitel odpoví do 14 dní), zprávy čitelné 1 rok (developers.booking.com, messaging).
+Ve Smoobu: po odjezdu napsali 3 z 31 hostů z Airbnb (nejpozději za 7 dní), z Bookingu nikdo (0 z 84).
+
+Výsledek: **1** – host napíše na Airbnb (do staré konverzace nebo nové zprávy) a odkáže se na číslo rezervace, které si
+má podle zprávy uložit; hostitelé ověří ve Smoobu a pošlou speciální nabídku. Text odstavce je v `obecne.yaml` na
+serveru (`sablona_slevy_na_dalsi_pobyt`). Sleva dál jen hostům z Airbnb (D6). Varianta 2 (kódy + tabulka) zrušena.

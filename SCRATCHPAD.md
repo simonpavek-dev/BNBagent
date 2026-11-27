@@ -3,6 +3,12 @@
 Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na konci aktualizovat.
 
 ## Hotovo
+- 27. 11.: D8 – sleva pro vracející se hosty přes zprávu na Airbnb + číslo rezervace (text v `obecne.yaml` na
+  serveru, `sablona_slevy_na_dalsi_pobyt`, zálohy `data/obecne.yaml.zaloha-2026-11-27-sleva*`); nasazeno P4.1 (`c3fb1cf`),
+  zapnuto `PRIKAZ_STATUS`, `TYDENNI_PREHLED` (19:00), `SLEVA_NA_DALSI_POBYT_PROCENT=5`. Lokální `obecne.yaml` se liší
+  od gitu (podpis, šablona slevy ze serveru) – necommitovat, `git add` jen konkrétní soubory.
+- Vasil hlídá konverzace jen do 3 dnů po odjezdu (`prace.aktivni_rezervace`) – zprávu do starší konverzace (žádost
+  o slevu) uvidí jen hostitelé ve Smoobu/Airbnb.
 - P4.1 (větev `p4-1-prehled-status`): `/status` (`PRIKAZ_STATUS`, `stav_bytu.py`) – obsazenost + kód domu a bytu,
   smazání po 15 min i s příkazem (`smazat_zpravy` v nastavení, mazání v každém cyklu, max 47 h); `/prehled` a nedělní
   přehled v 19:00 (`TYDENNI_PREHLED`, `prehled.py`, 1 volání modelu týdně); příkazy se registrují v Telegramu při startu;
