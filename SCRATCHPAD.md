@@ -3,6 +3,10 @@
 Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na konci aktualizovat.
 
 ## Hotovo
+- 27. 11. 9:22 nasazeno P3.1–P3.4 (main `cfe2dcd`): zapnuto `PODPIS_JEN_ZACATEK_A_KONEC`, `ZPRAVA_PRED_ODJEZDEM`,
+  `PROSBA_O_HODNOCENI`; `SLEVA_NA_DALSI_POBYT_PROCENT` zatím 0 (5 % čeká na výslovný souhlas hostitele);
+  `DOPORUCENI_PODNIKU` vypnuto (chybí klíč Google). Podpis na serveru: první řádek „Rentys – Simon & Michael“
+  (záloha `data/obecne.yaml.zaloha-2026-11-27`). První cykly bez chyb.
 - P3.3 doporučení podniků (větev `p3-3-doporuceni-podniku` z `p3-2-rozlouceni`, `podniky.py`, DECISIONS D7):
   nástroj `doporuc_podniky` jen s `DOPORUCENI_PODNIKU=ano` a `GOOGLE_MAPS_API_KEY`; Places API (New) Text Search kolem
   bytu, filtr kódem (≥ 4,0, ≥ 100 recenzí, v provozu, otevřeno v čase dotazu – do 7 dní currentOpeningHours, přes
