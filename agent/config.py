@@ -61,6 +61,11 @@ ZPRAVA_PRED_ODJEZDEM_HODINA = int(os.getenv("ZPRAVA_PRED_ODJEZDEM_HODINA", "18")
 SLEVA_NA_DALSI_POBYT_PROCENT = int(os.getenv("SLEVA_NA_DALSI_POBYT_PROCENT", "0"))
 PROSBA_O_HODNOCENI = os.getenv("PROSBA_O_HODNOCENI", "ne").strip().lower() == "ano"
 PROSBA_O_HODNOCENI_HODINA = int(os.getenv("PROSBA_O_HODNOCENI_HODINA", "12"))
+# ano = příkaz /status v Telegramu: stav bytů a kódy ke dveřím domu a bytu (zpráva se po 15 min smaže)
+PRIKAZ_STATUS = os.getenv("PRIKAZ_STATUS", "ne").strip().lower() == "ano"
+# ano = v neděli v TYDENNI_PREHLED_HODINA přehled týdne: kde Vasil potřeboval hostitele a co doplnit (i /prehled)
+TYDENNI_PREHLED = os.getenv("TYDENNI_PREHLED", "ne").strip().lower() == "ano"
+TYDENNI_PREHLED_HODINA = int(os.getenv("TYDENNI_PREHLED_HODINA", "19"))
 # Doporučení podniků z Google Maps (podniky.py): nástroj pro model jen se zapnutým přepínačem a vyplněným klíčem
 DOPORUCENI_PODNIKU = os.getenv("DOPORUCENI_PODNIKU", "ne").strip().lower() == "ano"
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "").strip()

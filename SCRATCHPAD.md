@@ -3,6 +3,13 @@
 Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na konci aktualizovat.
 
 ## Hotovo
+- P4.1 (větev `p4-1-prehled-status`): `/status` (`PRIKAZ_STATUS`, `stav_bytu.py`) – obsazenost + kód domu a bytu,
+  smazání po 15 min i s příkazem (`smazat_zpravy` v nastavení, mazání v každém cyklu, max 47 h); `/prehled` a nedělní
+  přehled v 19:00 (`TYDENNI_PREHLED`, `prehled.py`, 1 volání modelu týdně); příkazy se registrují v Telegramu při startu;
+  text začínající „/“ už nikdy není text pro hosta (ani při ✏️). Nový scénář v simulátoru (týden hostitelů).
+- Smoobu `/api/reservations` bez parametru `from` vrací jen neskončené pobyty (výchozí from = dnes) – minulé
+  (od 27. 8. 2026, všechny s `reference-id`) jen s `from`. Proto je v `server/export_analyzy.py` sekce
+  `odjezdy_smoobu` prázdná – opravit při další práci na exportu.
 - 27. 11. 9:22 nasazeno P3.1–P3.4 (main `cfe2dcd`): zapnuto `PODPIS_JEN_ZACATEK_A_KONEC`, `ZPRAVA_PRED_ODJEZDEM`,
   `PROSBA_O_HODNOCENI`; `SLEVA_NA_DALSI_POBYT_PROCENT` zatím 0 (5 % čeká na výslovný souhlas hostitele);
   `DOPORUCENI_PODNIKU` vypnuto (chybí klíč Google). Podpis na serveru: první řádek „Rentys – Simon & Michael“

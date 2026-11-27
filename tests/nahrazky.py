@@ -108,7 +108,10 @@ class FakeTelegram:
 
     def __init__(self, monkeypatch):
         self.zpravy = []
+        self.smazane = []
         self.vypadek = False
+        self._prichozi = 9000  # id zpráv, které do skupiny napíšou hostitelé
+        monkeypatch.setattr(oznameni, "smaz_zpravu", self.smaz, raising=False)
         monkeypatch.setattr(config, "TELEGRAM_BOT_TOKEN", "test")
         monkeypatch.setattr(oznameni, "_posli_ted", self.posli)
         monkeypatch.setattr(oznameni, "odeber_tlacitka", lambda *a, **k: None)
@@ -121,6 +124,20 @@ class FakeTelegram:
             return None  # jako skutečné oznameni.posli při chybě Telegramu
         self.zpravy.append({"id": len(self.zpravy) + 1, "text": text, "tlacitka": tlacitka or []})
         return len(self.zpravy)
+
+    def smaz(self, message_id):
+        if self.vypadek:
+            return False
+        self.smazane.append(message_id)
+        return True
+
+    def napis(self, smoobu, db, text, chat=None, kdo="Tester"):
+        """Hostitel napíše do skupiny (nebo do jiného chatu); vrací id jeho zprávy."""
+        self._prichozi += 1
+        telegram_ovladani._zprava(smoobu, db, {"chat": {"id": self.CHAT if chat is None else chat, "type": "group"},
+                                               "from": {"id": 1, "first_name": kdo}, "text": text,
+                                               "message_id": self._prichozi})
+        return self._prichozi
 
     def s_tlacitky(self):
         return [z for z in self.zpravy if z["tlacitka"]]

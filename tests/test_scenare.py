@@ -14,7 +14,7 @@ from agent import config, hodiny, uklidy, znacky
 PONDELI = datetime(2026, 11, 2, 9, 0)  # = začátek simulace (conftest.ZACATEK)
 NA_SERVERU = ("PRIJEZDY_AUTOMATICKY", "ZDVORILOSTI_BEZ_MODELU", "OPRAVA_KODU_PO_UKLIDU", "HLASIT_AUTOMATICKE_ODPOVEDI",
               "KONTROLA_KALENDARE", "POCKAT_NA_DALSI_ZPRAVY", "PODPIS_JEN_ZACATEK_A_KONEC", "ZPRAVA_PRED_ODJEZDEM",
-              "PROSBA_O_HODNOCENI", "DOPORUCENI_PODNIKU")
+              "PROSBA_O_HODNOCENI", "DOPORUCENI_PODNIKU", "PRIKAZ_STATUS", "TYDENNI_PREHLED")
 PODPIS = "Test team\nWhatsApp: +000 000 000 000"  # = hostitel.podpis v conftest.OBECNE
 
 
@@ -254,4 +254,37 @@ def test_doporuceni_podniku_z_google_maps(scenar):
     do_casu(svet, PONDELI.replace(hour=10, minute=30))
     assert len(svet.smoobu.odeslane) == 1
     assert any("ZKONTROLUJ" in z["text"] and "[TIPY Z MAP 1]" in z["text"] for z in svet.telegram.zpravy)
+    zasady(svet)
+
+
+def test_tyden_hostitelu_status_a_nedelni_prehled(scenar):
+    svet = scenar
+    st, ne = PONDELI + timedelta(days=2), PONDELI + timedelta(days=6)
+    uklid(svet, PONDELI.date(), "3333")
+    svet.smoobu.pridej_rezervaci("R1", (PONDELI + timedelta(days=10)).date(), (PONDELI + timedelta(days=12)).date())
+    svet.model.odpovedi["týdenní přehled"] = {
+        "doporuceni": [{"byt": "Testbyt", "co_doplnit": "Dětská postýlka.", "proc": "ptal se host",
+                        "veta_pro_vasila": "Vasile, do Testbytu doplň: postýlka [ano/ne, kde]."}],
+        "nechat_na_hostitelich": [], "shrnuti": "Klidný týden."}
+
+    # Po – host se ptá na něco, co ve znalostní bázi není → Vasil se doptá
+    svet.smoobu.napis_host("R1", "Do you have a baby crib?")
+    svet.model.odpovez(rozhodnuti="eskalovat", text="We will check and get back to you.", navrh="Postýlka – nevím.")
+    do_casu(svet, PONDELI.replace(minute=30))
+    assert any("POTŘEBUJU TĚ" in z["text"] for z in svet.telegram.zpravy)
+
+    # St 14:00 – hostitelé jdou do bytu: /status ukáže stav a kódy, po 15 minutách zmizí
+    do_casu(svet, st.replace(hour=14), krok=3600)
+    pred = len(svet.telegram.zpravy)
+    prikaz = svet.telegram.napis(svet.smoobu, svet.db, "/status")
+    [status] = svet.telegram.zpravy[pred:]
+    assert "Testbyt – 🟢 volno do 12. 11." in status["text"] and "🔑 byt 3333" in status["text"]
+    do_casu(svet, st.replace(hour=14, minute=20))
+    assert sorted(svet.telegram.smazane) == sorted([prikaz, status["id"]])
+
+    # Ne 19:00 – přehled týdne s dotazem na postýlku a doporučením, jen jednou
+    do_casu(svet, ne.replace(hour=18), krok=3600)
+    do_casu(svet, ne.replace(hour=19, minute=30))
+    [prehled] = [z for z in svet.telegram.zpravy if "TÝDENNÍ PŘEHLED" in z["text"]]
+    assert "Do you have a baby crib?" in prehled["text"] and "Vasile, do Testbytu doplň" in prehled["text"]
     zasady(svet)

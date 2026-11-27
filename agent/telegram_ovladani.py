@@ -1,10 +1,11 @@
-"""Ovládání agenta z Telegramu: tlačítka ✅ Odeslat / ✏️ Upravit / ❌ Neposílat a odpovědi hostitele."""
+"""Ovládání agenta z Telegramu: tlačítka ✅ Odeslat / ✏️ Upravit / ❌ Neposílat, odpovědi hostitele a příkazy
+/status, /prehled, /zrusit."""
 import logging
 
 import re
 import unicodedata
 
-from . import config, navrhy, oznameni, spravce
+from . import config, navrhy, oznameni, prehled, spravce, stav_bytu
 
 log = logging.getLogger("agent")
 
@@ -22,7 +23,7 @@ def zpracuj(smoobu, db, cekat=20):
             if "callback_query" in udalost:
                 _kliknuti(smoobu, db, udalost["callback_query"])
             elif "message" in udalost:
-                _zprava(db, udalost["message"])
+                _zprava(smoobu, db, udalost["message"])
         except Exception as e:
             log.exception("Chyba při zpracování Telegramu")
             oznameni.posli(f"⚠️ Akci se nepodařilo provést: {e}")
@@ -93,15 +94,35 @@ def _kliknuti(smoobu, db, cq):
             oznameni.posli(f"❌ Neposílám{navrhy._kdo(kdo)}.\n{navrh['hlavicka']}")
 
 
-def _zprava(db, msg):
+PRIKAZY = [("status", "Stav bytů a kódy ke dveřím (zpráva se po 15 min smaže)"),
+           ("prehled", "Přehled týdne: kde vás Vasil potřeboval a co doplnit"),
+           ("zrusit", "Zrušit rozpracovanou úpravu návrhu")]
+
+
+def _zprava(smoobu, db, msg):
     if not _od_hostitele(msg.get("chat")):
         return
     text = (msg.get("text") or "").strip()
     klic = _klic_upravy(msg.get("from"))
     upravuje = db.nastaveni(klic, "")
-    if text.split("@")[0] == "/zrusit":  # ve skupině Telegram posílá „/zrusit@Vasilbnb_bot“
+    # příkaz nikdy není text pro hosta, ani během ✏️ úpravy; ve skupině Telegram posílá „/status@Vasilbnb_bot“
+    prikaz = text.split()[0].split("@")[0].lower() if text.startswith("/") else ""
+    if prikaz == "/zrusit":
         db.uloz_nastaveni(klic, "")
         oznameni.posli("Úprava zrušena. Původní návrh má pořád svoje tlačítka.")
+        return
+    if prikaz == "/status":
+        stav_bytu.odpovez(smoobu, db, msg.get("message_id"))
+        return
+    if prikaz == "/prehled":
+        if config.TYDENNI_PREHLED:
+            oznameni.akce_psani()
+            prehled.posli(db)
+        else:
+            oznameni.posli("Přehled týdne je vypnutý (TYDENNI_PREHLED v .env).")
+        return
+    if prikaz:
+        oznameni.posli("Tenhle příkaz neznám. Umím: " + ", ".join(f"/{p}" for p, _ in PRIKAZY) + ".")
         return
     if not upravuje or not text:
         # ve skupině si spolu můžete normálně psát – bot reaguje jen na ✏️ Upravit a na zprávy určené jemu

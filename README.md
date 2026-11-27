@@ -114,6 +114,18 @@ Text skládá agent ze šablony (anglicky, jinému jazyku ji model přeloží ja
 Když host ten den už od nás zprávu na stejné téma dostal (třeba automatickou zprávu Smoobu), agent ji nepošle a dá
 vědět – ve Smoobu proto vypněte automatické zprávy č. 5 a 6 z `navody/automaticke-zpravy.md`.
 
+## Příkaz /status – stav bytů a kódy
+S `PRIKAZ_STATUS=ano` stačí ve skupině napsat `/status` a Vasil hned pošle stav všech bytů – 🔴 obsazeno (do kdy),
+🟡 dnes odjezd / příjezd, 🟢 volno (do dalšího příjezdu) – a kódy ke dveřím: 🚪 dům (znalostní báze) a 🔑 byt (kód, který
+je teď na keyboxu, z aplikace úklidů; v den úklidu i kód platný do úklidu). Zpráva se po 15 minutách smaže i s příkazem,
+aby kódy nezůstaly v historii skupiny. Funguje jen ve vaší skupině.
+
+## Nedělní přehled
+S `TYDENNI_PREHLED=ano` přijde každou neděli v `TYDENNI_PREHLED_HODINA` (19:00) přehled za posledních 7 dní: kolik zpráv
+přišlo a kolik jich Vasil vyřídil sám, kde vás potřeboval (dotaz hosta, proč to nezvládl, jak to dopadlo) a doporučení,
+co doplnit do znalostní báze, aby to příště zvládl sám – i s hotovou větou „Vasile, do … doplň: …“. Věci, o kterých
+musíte rozhodnout vy (slevy, stížnosti, výjimky), doplnit nedoporučí. Kdykoli na požádání: příkaz `/prehled`.
+
 ## Doporučení podniků z Google Maps
 S `DOPORUCENI_PODNIKU=ano` a klíčem `GOOGLE_MAPS_API_KEY` agent na dotaz hosta („kam na večeři?“, „dobrá kavárna
 na zítřek ráno?“) prohledá Google Maps kolem bytu a doporučí až 3 podniky, které:

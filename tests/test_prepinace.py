@@ -11,7 +11,8 @@ PREPINACE = ["KONTROLA_KALENDARE", "NABIDKA_DRIVEJSIHO_CHECKINU", "HLIDANI_UKLID
              "OPRAVA_KODU_PO_UKLIDU", "CHAT_PRES_TELEGRAM", "HODNOCENI_HOSTU",
              "ZDVORILOSTI_BEZ_MODELU", "LEVNEJSI_MODEL_PRO_JEDNODUCHE", "PRIJEZDY_AUTOMATICKY",
              "HLASIT_AUTOMATICKE_ODPOVEDI", "POCKAT_NA_DALSI_ZPRAVY", "PODPIS_JEN_ZACATEK_A_KONEC",
-             "ZPRAVA_PRED_ODJEZDEM", "PROSBA_O_HODNOCENI", "DOPORUCENI_PODNIKU"]
+             "ZPRAVA_PRED_ODJEZDEM", "PROSBA_O_HODNOCENI", "DOPORUCENI_PODNIKU",
+             "PRIKAZ_STATUS", "TYDENNI_PREHLED"]
 
 
 @pytest.mark.parametrize("nazev", PREPINACE)
@@ -94,9 +95,9 @@ def test_chat_pres_telegram(svet, monkeypatch, zapnuto):
     monkeypatch.setattr(config, "CHAT_PRES_TELEGRAM", zapnuto)
     dotazy = []
     monkeypatch.setattr(spravce, "odpovez", lambda db, text: dotazy.append(text) or "Odpověď")
-    telegram_ovladani._zprava(svet.db, {"chat": {"id": svet.telegram.CHAT, "type": "group"},
-                                        "from": {"id": 1, "first_name": "Tester"}, "text": "Vasile, jaké máš kódy?",
-                                        "message_id": 5})
+    telegram_ovladani._zprava(svet.smoobu, svet.db, {"chat": {"id": svet.telegram.CHAT, "type": "group"},
+                                                     "from": {"id": 1, "first_name": "Tester"},
+                                                     "text": "Vasile, jaké máš kódy?", "message_id": 5})
     assert bool(dotazy) is zapnuto
 
 

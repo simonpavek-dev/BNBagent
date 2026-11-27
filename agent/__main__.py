@@ -17,7 +17,8 @@ import sys
 import time
 from datetime import datetime, timedelta
 
-from . import config, hodiny, kontext, navrhy, odchozi, odjezdy, oznameni, prace, telegram_ovladani, uklidy, znalosti
+from . import (config, hodiny, kontext, navrhy, odchozi, odjezdy, oznameni, prace, prehled, stav_bytu,
+               telegram_ovladani, uklidy, znalosti)
 from .smoobu import SmoobuOvereni
 
 
@@ -103,6 +104,7 @@ def jeden_cyklus(smoobu, db):
     Chyba ve vyřizování zpráv se propaguje (smyčka ji počítá); ostatní kroky jsou na sobě nezávislé."""
     log = logging.getLogger("agent")
     _krok(db, "fronta upozornění", oznameni.dorucit_frontu, db)  # i když Smoobu nejde
+    _krok(db, "smazání zpráv s kódy", stav_bytu.smaz_prosle, db)  # /status po 15 minutách
     db.uloz_nastaveni("cinnost", "Kontroluji nové zprávy ve Smoobu…")
     prace.vyrid_zpravy(smoobu, db)
     ted = hodiny.ted()
@@ -132,6 +134,10 @@ def jeden_cyklus(smoobu, db):
             and db.nastaveni("hodnoceni_den") != ted.date().isoformat()):
         if _krok(db, "návrhy hodnocení", prace.navrhni_hodnoceni, smoobu, db):
             db.uloz_nastaveni("hodnoceni_den", ted.date().isoformat())
+    if (config.TYDENNI_PREHLED and ted.weekday() == 6 and ted.hour >= config.TYDENNI_PREHLED_HODINA
+            and db.nastaveni("tydenni_prehled_den") != ted.date().isoformat()):  # neděle večer
+        if _krok(db, "týdenní přehled", prehled.posli, db):
+            db.uloz_nastaveni("tydenni_prehled_den", ted.date().isoformat())
     return ted
 
 
@@ -151,6 +157,9 @@ def spustit(_args):
     if db.nastaveni("inicializovano") != "ano":
         prace.inicializace(smoobu, db)
     log.info("Agent běží (režim %s, kontrola každé %s min). Ukončíš Ctrl+C.", prace.rezim(db), config.INTERVAL_MINUT)
+    if oznameni.telegram_zapnuty():  # nabídka příkazů po napsání „/“ ve skupině
+        oznameni.nastav_prikazy([(p, d) for p, d in telegram_ovladani.PRIKAZY
+                                 if (p != "status" or config.PRIKAZ_STATUS) and (p != "prehled" or config.TYDENNI_PREHLED)])
     chyby_za_sebou = 0
     dalsi_kontrola = 0.0
     posledni_tik = time.time()

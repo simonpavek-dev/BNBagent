@@ -98,6 +98,38 @@ def _posli_ted(text, tlacitka=None, odpoved_na=None):
     return message_id
 
 
+def posli_hned(text, odpoved_na=None):
+    """Odpověď na příkaz (/status) – bez fronty: zastaralá odpověď s kódy by po výpadku Telegramu byla k ničemu.
+    Vrací message_id, nebo None."""
+    log.info("ODPOVĚĎ NA PŘÍKAZ (%d znaků)", len(text))
+    if not telegram_zapnuty():
+        print("\n" + text)
+        return None
+    return _posli_ted(text, odpoved_na=odpoved_na)
+
+
+def smaz_zpravu(message_id):
+    """Smaže zprávu ve skupině. Vrací False, jen když to má smysl zkusit znovu (Telegram teď nejde)."""
+    try:
+        _api("deleteMessage", chat_id=config.TELEGRAM_CHAT_ID, message_id=message_id)
+        return True
+    except TelegramChyba as e:
+        if " 400 " in str(e) or " 403 " in str(e):  # už smazaná / starší než 48 h / bot nemá právo – nezkoušet znovu
+            log.warning("Zprávu %s nejde smazat: %s", message_id, e)
+            return True
+        log.warning("Zprávu %s se teď nepodařilo smazat: %s", message_id, e)
+        return False
+
+
+def nastav_prikazy(prikazy):
+    """Nabídka příkazů po napsání „/“ ve skupině: [(příkaz, popis), ...]."""
+    try:
+        _api("setMyCommands", commands=[{"command": c, "description": d} for c, d in prikazy],
+             scope={"type": "chat", "chat_id": config.TELEGRAM_CHAT_ID})
+    except requests.RequestException as e:
+        log.warning("Nepodařilo se nastavit nabídku příkazů: %s", e)
+
+
 def odeber_tlacitka(message_id):
     try:
         _api("editMessageReplyMarkup", chat_id=config.TELEGRAM_CHAT_ID, message_id=message_id,

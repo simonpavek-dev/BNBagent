@@ -12,13 +12,15 @@ Znalostní báze = YAML v `znalostni-baze/` (skutečné byty nejsou v gitu). Tes
 - `mozek.py` – volání Claude (rozhodnutí o zprávě, instrukce, hodnocení, překlad); volají `prace`, `navrhy`, `spravce`, `uklidy`.
 - `navrhy.py` – návrhy pro hosty: schválení, plánované odeslání, kontroly před odesláním (`odeslat()`).
 - `odchozi.py` – **brána**: jediné místo s `smoobu.send_message`; po timeoutu ověří konverzaci (žádné dvojí odeslání).
-- `telegram_ovladani.py` – tlačítka a zprávy ze skupiny, „Vasile…“ → `spravce`; volá hlavní smyčka.
+- `telegram_ovladani.py` – tlačítka a zprávy ze skupiny, „Vasile…“ → `spravce`, příkazy /status, /prehled; volá hlavní smyčka.
 - `oznameni.py` – Telegram: `posli` (při výpadku do fronty, `dorucit_frontu` v cyklu), tlačítka, getUpdates.
 - `spravce.py` – chat s hostitelem (panel i Telegram) s nástroji: znalostní báze, rezervace, kódy, návrh zprávy.
 - `uklidy.py` – aplikace úklidů (čte `/uklidy`): kódy, stav úklidu, nabídka dřívějšího check-inu; volá hlavní smyčka, `kody`.
 - `instrukce.py` – instrukce k příjezdu ze šablony (jediná cesta), model jen překládá; volá `prace`.
 - `trideni.py` – pravidla bez modelu: jednoduchá zpráva (→ levnější model), čistá zdvořilost (→ odpověď bez modelu), naléhavá zpráva (→ bez čekání na další); volá `prace`.
 - `znacky.py` – kódy a Wi-Fi v odpovědích hostům: model vidí a píše jen značky, hodnoty dosadí kód; volají `prace`, `navrhy`.
+- `stav_bytu.py` – /status: obsazenost bytů a kódy ke dveřím, zprávu po 15 min smaže (`smaz_prosle`); volá `telegram_ovladani`, `__main__`.
+- `prehled.py` – nedělní přehled: kde Vasil potřeboval hostitele + doporučení, co doplnit (model); volá `__main__`, `telegram_ovladani`.
 - `podpis.py` – podpis jen v první naší zprávě a po skončení pobytu (doplňuje kód, model ne); volají `prace`, `navrhy`, `spravce`, `uklidy`.
 - `odjezdy.py` – zpráva večer před odjezdem (check-out, sleva pro vracející se) a prosba o hodnocení v den odjezdu ze šablony; volá hlavní smyčka.
 - `kody.py` – platný kód keyboxu pro rezervaci (aplikace úklidů / znalostní báze); volají `prace`, `spravce`.
@@ -35,6 +37,7 @@ Znalostní báze = YAML v `znalostni-baze/` (skutečné byty nejsou v gitu). Tes
 - Hostovi nic neodejde mimo bránu `odchozi.odeslat` (přes `navrhy.odeslat`); hlídá to test `test_jen_brana_posila_zpravy_hostum`.
 - Kódy, Wi-Fi, adresy a časy nikdy nepíše model, doplňuje je kód ze zdroje pravdy.
 - Upozornění hostiteli se nesmí ztratit – jen přes `oznameni.posli` (fronta při výpadku Telegramu); u návrhů `navrh_id`.
+  Výjimka: odpověď na /status (`oznameni.posli_hned`, bez fronty – zastaralé kódy po výpadku nemají smysl).
 - Nová funkce = přepínač v `.env`, výchozí vypnuto, popsaný v `.env.example`, přidaný do `PREPINACE` v `tests/test_prepinace.py`.
 - Žádná skutečná data hostů, kódy ani telefonní čísla v testech, příkladech a commitech. Repo je veřejné.
 - Hodnoty z `.env` nikdy nečti ani nevypisuj, jen názvy proměnných (např. `grep -c '^SMOOBU_API_SECRET=.' .env`).

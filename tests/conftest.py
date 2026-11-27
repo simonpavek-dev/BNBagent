@@ -20,7 +20,8 @@ def bez_skutecnych_sluzeb(monkeypatch, tmp_path):
                      "KONTROLA_KALENDARE", "NABIDKA_DRIVEJSIHO_CHECKINU",
                      "HLIDANI_UKLIDU_K_PRIJEZDU", "OPRAVA_KODU_PO_UKLIDU", "CHAT_PRES_TELEGRAM", "HODNOCENI_HOSTU",
                      "HLASIT_AUTOMATICKE_ODPOVEDI", "POCKAT_NA_DALSI_ZPRAVY", "PODPIS_JEN_ZACATEK_A_KONEC",
-                     "ZPRAVA_PRED_ODJEZDEM", "PROSBA_O_HODNOCENI", "DOPORUCENI_PODNIKU"):
+                     "ZPRAVA_PRED_ODJEZDEM", "PROSBA_O_HODNOCENI", "DOPORUCENI_PODNIKU",
+                     "PRIKAZ_STATUS", "TYDENNI_PREHLED"):
         monkeypatch.setattr(config, prepinac, False, raising=False)
     monkeypatch.setattr(config, "SLEVA_NA_DALSI_POBYT_PROCENT", 0, raising=False)
     monkeypatch.setattr(config, "REZIM", "navrh")

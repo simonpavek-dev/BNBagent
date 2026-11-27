@@ -283,3 +283,38 @@ def priprav_zpravu_hostitele(text_hostitele, jazyk_hosta):
 
 def navrhni_hodnoceni(obecne_text, apartman_text, kontext):
     return _zavolej(INSTRUKCE_HODNOCENI, obecne_text, apartman_text, kontext, SCHEMA_HODNOCENI, ucel="hodnocení hosta")
+
+
+INSTRUKCE_PREHLED = """Jsi asistent hostitele krátkodobých pronájmů. Agent Vasil odpovídá hostům sám podle znalostní báze bytů.
+Dostaneš případy z posledního týdne, kdy Vasil hostovi sám odpovědět nedokázal a potřeboval hostitele (eskalace),
+kdy jeho odpověď zastavila kontrola, nebo kdy hostitel jeho návrh přepsal či zahodil – a znalostní bázi všech bytů.
+Navrhni, jaké konkrétní informace doplnit do znalostní báze, aby příště podobné dotazy vyřídil sám.
+- Doporuč jen to, co ve znalostní bázi opravdu chybí nebo je nejasné – ověř to v YAML.
+- Témata z "vzdy_eskalovat" a vše, o čem musí rozhodnout hostitel (slevy, výjimky z pravidel, stížnosti, škody, dřívější
+  check-in, peníze), nedoporučuj doplnit – uveď je v "nechat_na_hostitelich" (krátce, bez opakování).
+- Podobné případy seskup (např. dva hosté se ptali na postýlku) a seřaď od nejužitečnějšího; nejvýš 6 doporučení.
+- Když hostitel hostovi odpověděl sám (je uvedeno, co napsal), informaci z jeho odpovědi rovnou použij.
+- "veta_pro_vasila": hotový pokyn pro chat ve tvaru „Vasile, do <byt> doplň: …“ (nebo „Vasile, do obecných pravidel
+  doplň: …“, když jde o všechny byty); údaj, který zná jen hostitel, nech v hranatých závorkách, např. [kde přesně].
+- Kódy, hesla a Wi-Fi nikdy nepiš (ve znalostní bázi vidíš jen značky).
+- Piš česky, stručně a konkrétně. "shrnuti" = jedna věta o týdnu."""
+
+SCHEMA_PREHLED = {
+    "type": "object",
+    "properties": {
+        "doporuceni": {"type": "array", "items": {
+            "type": "object",
+            "properties": {"byt": {"type": "string"}, "co_doplnit": {"type": "string"}, "proc": {"type": "string"},
+                           "veta_pro_vasila": {"type": "string"}},
+            "required": ["byt", "co_doplnit", "proc", "veta_pro_vasila"], "additionalProperties": False}},
+        "nechat_na_hostitelich": {"type": "array", "items": {"type": "string"}},
+        "shrnuti": {"type": "string"},
+    },
+    "required": ["doporuceni", "nechat_na_hostitelich", "shrnuti"],
+    "additionalProperties": False,
+}
+
+
+def doporuc_doplneni(obecne_text, apartmany_text, kontext):
+    """Nedělní přehled (prehled.py): co doplnit do znalostní báze podle případů z týdne."""
+    return _zavolej(INSTRUKCE_PREHLED, obecne_text, apartmany_text, kontext, SCHEMA_PREHLED, ucel="týdenní přehled")
