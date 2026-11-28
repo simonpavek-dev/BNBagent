@@ -66,6 +66,10 @@ PRIKAZ_STATUS = os.getenv("PRIKAZ_STATUS", "ne").strip().lower() == "ano"
 # ano = v neděli v TYDENNI_PREHLED_HODINA přehled týdne: kde Vasil potřeboval hostitele a co doplnit (i /prehled)
 TYDENNI_PREHLED = os.getenv("TYDENNI_PREHLED", "ne").strip().lower() == "ano"
 TYDENNI_PREHLED_HODINA = int(os.getenv("TYDENNI_PREHLED_HODINA", "19"))
+# ano = hlídání Poslanecké sněmovny (legislativa.py): návrhy zákonů a jednání ke krátkodobému ubytování do skupiny
+HLIDANI_LEGISLATIVY = os.getenv("HLIDANI_LEGISLATIVY", "ne").strip().lower() == "ano"
+LEGISLATIVA_HODINY = [int(h) for h in os.getenv("LEGISLATIVA_HODINY", "7,19").split(",") if h.strip()]  # stažení dat
+LEGISLATIVA_SOUHRN_HODINA = int(os.getenv("LEGISLATIVA_SOUHRN_HODINA", "8"))  # pondělní souhrn
 # Doporučení podniků z Google Maps (podniky.py): nástroj pro model jen se zapnutým přepínačem a vyplněným klíčem
 DOPORUCENI_PODNIKU = os.getenv("DOPORUCENI_PODNIKU", "ne").strip().lower() == "ano"
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "").strip()

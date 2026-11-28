@@ -3,6 +3,11 @@
 Pracovní poznámky mezi úkoly. Na začátku každého úkolu přečíst, na konci aktualizovat.
 
 ## Hotovo
+- P4.2 (větev `p4-2-legislativa`, `HLIDANI_LEGISLATIVY`, `legislativa.py`): Sněmovna z otevřených dat psp.cz
+  (tisky/schuze/steno/poslanci.zip, cp1250, UNL), plný text tisků z PDF (`pypdf`), stenozáznamy HTML; témata = regexy
+  `TEMATA`, model jen u výňatků. Tabulky `leg_tisky`, `leg_steno`, `leg_zpravy`. Zprávy do skupiny hostitelů (hostitel
+  si nepřál zvláštní chat). Ověřeno na skutečných datech: 182 návrhů zákonů, tisky 106 a 107 (cestovní ruch) relevantní.
+- 28. 11.: sleva vypnuta (`SLEVA_NA_DALSI_POBYT_PROCENT=0`); 27. 11. 18:02 ji dostal 1 host z Airbnb (Školská, 26.–28. 11.).
 - 27. 11.: D8 – sleva pro vracející se hosty přes zprávu na Airbnb + číslo rezervace (text v `obecne.yaml` na
   serveru, `sablona_slevy_na_dalsi_pobyt`, zálohy `data/obecne.yaml.zaloha-2026-11-27-sleva*`); nasazeno P4.1 (`c3fb1cf`),
   zapnuto `PRIKAZ_STATUS`, `TYDENNI_PREHLED` (19:00), `SLEVA_NA_DALSI_POBYT_PROCENT=5`. Lokální `obecne.yaml` se liší

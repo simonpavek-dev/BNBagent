@@ -17,8 +17,8 @@ import sys
 import time
 from datetime import datetime, timedelta
 
-from . import (config, hodiny, kontext, navrhy, odchozi, odjezdy, oznameni, prace, prehled, stav_bytu,
-               telegram_ovladani, uklidy, znalosti)
+from . import (config, hodiny, kontext, legislativa, navrhy, odchozi, odjezdy, oznameni, prace, prehled,
+               stav_bytu, telegram_ovladani, uklidy, znalosti)
 from .smoobu import SmoobuOvereni
 
 
@@ -134,6 +134,8 @@ def jeden_cyklus(smoobu, db):
             and db.nastaveni("hodnoceni_den") != ted.date().isoformat()):
         if _krok(db, "návrhy hodnocení", prace.navrhni_hodnoceni, smoobu, db):
             db.uloz_nastaveni("hodnoceni_den", ted.date().isoformat())
+    if config.HLIDANI_LEGISLATIVY:  # Sněmovna: stažení dat v LEGISLATIVA_HODINY, pak po dávkách texty a stenozáznamy
+        _krok(db, "hlídání Sněmovny", legislativa.zkontroluj, db)
     if (config.TYDENNI_PREHLED and ted.weekday() == 6 and ted.hour >= config.TYDENNI_PREHLED_HODINA
             and db.nastaveni("tydenni_prehled_den") != ted.date().isoformat()):  # neděle večer
         if _krok(db, "týdenní přehled", prehled.posli, db):

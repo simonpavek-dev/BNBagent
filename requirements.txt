@@ -3,3 +3,4 @@ requests
 python-dotenv
 pyyaml
 urllib3<2
+pypdf>=5

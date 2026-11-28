@@ -68,6 +68,29 @@ class Databaze:
                 klic TEXT PRIMARY KEY,
                 hodnota TEXT
             );
+            CREATE TABLE IF NOT EXISTS leg_tisky (     -- hlídání legislativy: sněmovní tisky (legislativa.py)
+                id_tisk TEXT PRIMARY KEY,
+                ct TEXT, nazev TEXT, stav TEXT,        -- stav projednávání v Sněmovně (popis)
+                posouzeni TEXT,                        -- ceka / relevantni / nerelevantni / chyba
+                pokusy INTEGER DEFAULT 0,
+                temata TEXT, shrnuti TEXT, dopad TEXT,
+                posledni_hist INTEGER DEFAULT 0,       -- nahlášené kroky projednávání
+                hist_max INTEGER DEFAULT 0,            -- poslední krok podle dat
+                schuze TEXT DEFAULT '[]',              -- schůze, na jejichž programu tisk byl (nahlášeno)
+                program TEXT DEFAULT '[]',             -- [[schůze, od, bod]] podle dat (pro pondělní souhrn)
+                cas TEXT
+            );
+            CREATE TABLE IF NOT EXISTS leg_steno (     -- stenozáznamy (úseky po 10 minutách)
+                id_steno TEXT PRIMARY KEY,
+                url TEXT, schuze TEXT, datum TEXT,
+                stav TEXT,                             -- ceka / bez / shoda / nahlaseno / stare / chyba
+                pokusy INTEGER DEFAULT 0,
+                vynatek TEXT
+            );
+            CREATE TABLE IF NOT EXISTS leg_zpravy (    -- zprávy ze Sněmovny poslané do skupiny (pro pondělní souhrn)
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cas TEXT, text TEXT
+            );
         """)
         for tabulka, sloupec in (("navrhy", "odeslat_po TEXT"),   # starší databáze – doplnit sloupce
                                  ("odchozi", "zkraceno INTEGER")):  # 1 = Smoobu uložilo zprávu zkrácenou

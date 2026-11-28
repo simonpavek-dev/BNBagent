@@ -1,6 +1,9 @@
 """Náhražky pro testy celého cyklu agenta bez internetu: Smoobu, Telegram a model Claude.
 Všechna data jsou smyšlená (byt, hosté, kódy)."""
 
+import io
+import zipfile
+
 import requests
 
 from agent import config, hodiny, mozek, oznameni, telegram_ovladani
@@ -172,3 +175,64 @@ class FakeModel:
         """Nastaví odpověď na zprávy hostů."""
         self.odpovedi["zpráva hosta"] = {"rozhodnuti": rozhodnuti, "odpoved_hostovi": text,
                                          "navrh_pro_hostitele": navrh, "duvod": "test", "jazyk_hosta": "en"}
+
+
+def _radek(*hodnoty, sloupcu=None):
+    hodnoty = [str(h) for h in hodnoty] + [""] * max(0, (sloupcu or 0) - len(hodnoty))
+    return "|".join(hodnoty) + "|"
+
+
+class FakePsp:
+    """Smyšlená otevřená data Sněmovny a stránky tisků / stenozáznamů."""
+
+    def __init__(self):
+        self.tisky = {}       # id → (druh, id_stav, ct, zkratka, nazev, predlozeno)
+        self.hist = []        # (id_hist, id_tisk, datum, id_prechod, schuze)
+        self.schuze = [("900", "37", "2026-11-24 14", "2026-11-27 14")]
+        self.body = []        # (id_bod, id_schuze, id_tisk, bod, stav)
+        self.steno = []       # (id_steno, schuze, turn, datum)
+        self.texty = {}       # ct → text tisku
+        self.steno_texty = {}  # url → text
+        self.stazeno = []
+
+    def tisk(self, id_tisk, ct, zkratka, text, druh="2", stav="20", predlozeno="10.02.2026"):
+        self.tisky[id_tisk] = (druh, stav, ct, zkratka, f"Návrh zákona – {zkratka}", predlozeno)
+        self.texty[ct] = text
+
+    def _zip(self, soubory):
+        b = io.BytesIO()
+        with zipfile.ZipFile(b, "w") as z:
+            for nazev, radky in soubory.items():
+                z.writestr(nazev, ("\n".join(radky) + "\n").encode("cp1250"))
+        return b.getvalue()
+
+    def stahni(self, url, timeout=120):
+        self.stazeno.append(url)
+        if url.endswith("poslanci.zip"):
+            return self._zip({"organy.unl": [_radek(174, "", 11, "PSP10", "Poslanecká sněmovna", "Chamber", "04.10.2025", "")]})
+        if url.endswith("tisky.zip"):
+            return self._zip({
+                "tisky.unl": [_radek(i, d, s, ct, 0, "", "", 174, "", "", zk, pr, "", "", "", naz, sloupcu=25)
+                              for i, (d, s, ct, zk, naz, pr) in self.tisky.items()],
+                "hist.unl": [_radek(h, t, dat, "", pre, "", sch) for h, t, dat, pre, sch in self.hist],
+                "typ_stavu.unl": [_radek(1, "1. čtení"), _radek(2, "2. čtení"), _radek(6, "KONEC")],
+                "stavy.unl": [_radek(20, 1, 2), _radek(21, 2, 2), _radek(29, 6, 2)],
+                "typ_akce.unl": [_radek(1, "doporučen"), _radek(2, "schválen v 1. čtení")],
+                "prechody.unl": [_radek(100, 0, 20, 1, 1), _radek(101, 20, 21, 2, 1)],
+            })
+        if url.endswith("schuze.zip"):
+            return self._zip({
+                "schuze.unl": [_radek(i, 174, c, od, do, "", "") for i, c, od, do in self.schuze],
+                "bod_schuze.unl": [_radek(b, s, t, 1, n, "Bod", "", "", st, "", sloupcu=15) for b, s, t, n, st in self.body],
+            })
+        if url.endswith("steno.zip"):
+            return self._zip({"steno.unl": [_radek(i, 174, s, t, d, 1, 840, 850) for i, s, t, d in self.steno],
+                              "steno_bod.unl": [], "rec.unl": []})
+        if "tiskt.sqw" in url:
+            ct = url.split("ct=")[1].split("&")[0]
+            return f'<a href="/sqw/text/orig2.sqw?idd=7{ct}">Celý sněmovní tisk</a>'.encode("cp1250")
+        if "orig2.sqw" in url:
+            return url.split("idd=7")[1].encode()      # „PDF“ = číslo tisku; text vrátí _text_pdf níže
+        if url in self.steno_texty:
+            return f"<html><p>{self.steno_texty[url]}</p></html>".encode("cp1250")
+        raise AssertionError(f"FakePsp nezná {url}")

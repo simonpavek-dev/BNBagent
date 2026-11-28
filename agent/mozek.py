@@ -318,3 +318,44 @@ SCHEMA_PREHLED = {
 def doporuc_doplneni(obecne_text, apartmany_text, kontext):
     """Nedělní přehled (prehled.py): co doplnit do znalostní báze podle případů z týdne."""
     return _zavolej(INSTRUKCE_PREHLED, obecne_text, apartmany_text, kontext, SCHEMA_PREHLED, ucel="týdenní přehled")
+
+
+ZADANI_LEGISLATIVA = """Jsi právní asistent provozovatele krátkodobých pronájmů bytů v Praze (Airbnb, Booking.com). Hlídáš
+Poslaneckou sněmovnu kvůli tomu, co může jeho podnikání omezit: eTurista a evidence hostů, povinná registrace bytů
+(i nařízení EU 2024/1028), omezení počtu pronajímaných nocí, kolaudace a změna užívání bytů, pravomoci Prahy a obcí
+regulovat krátkodobé ubytování, případně další omezení (daně, poplatek z pobytu, pravomoci SVJ…).
+Pracuj jen s tím, co je v dodaném textu – nic nedomýšlej a neodhaduj z paměti. Piš česky, stručně a věcně, bez Markdownu.
+"relevantni": true, jen když má věc na takové podnikání přímý vliv (pouhá zmínka slova nestačí).
+"""
+
+INSTRUKCE_LEG_TISK = ZADANI_LEGISLATIVA + """Dostaneš sněmovní tisk (název, stav projednávání) a výňatky z jeho textu,
+kde se objevila klíčová slova. "temata": dotčená témata z výčtu výše. "shrnuti": 2–4 věty, co návrh mění.
+"dopad": 1–2 věty, co by to znamenalo pro hostitele v Praze."""
+
+INSTRUKCE_LEG_ROZPRAVA = ZADANI_LEGISLATIVA + """Dostaneš výňatky ze stenozáznamu jednání Sněmovny z jednoho dne, kde padla
+klíčová slova. "shrnuti": 2–5 vět – k čemu se mluvilo (bod, tisk), kdo co řekl nebo navrhl a jak to dopadlo, pokud je to
+z textu vidět. "dopad": 1–2 věty, co to znamená pro hostitele v Praze."""
+
+SCHEMA_LEG_TISK = {
+    "type": "object",
+    "properties": {"relevantni": {"type": "boolean"}, "temata": {"type": "array", "items": {"type": "string"}},
+                   "shrnuti": {"type": "string"}, "dopad": {"type": "string"}},
+    "required": ["relevantni", "temata", "shrnuti", "dopad"],
+    "additionalProperties": False,
+}
+SCHEMA_LEG_ROZPRAVA = {
+    "type": "object",
+    "properties": {"relevantni": {"type": "boolean"}, "shrnuti": {"type": "string"}, "dopad": {"type": "string"}},
+    "required": ["relevantni", "shrnuti", "dopad"],
+    "additionalProperties": False,
+}
+
+
+def posud_tisk(kontext):
+    """Hlídání legislativy (legislativa.py): týká se sněmovní tisk krátkodobého ubytování?"""
+    return _zavolej(INSTRUKCE_LEG_TISK, "", "", kontext, SCHEMA_LEG_TISK, ucel="legislativa – tisk")
+
+
+def shrn_rozpravu(kontext):
+    """Hlídání legislativy (legislativa.py): co ve Sněmovně zaznělo k tématům."""
+    return _zavolej(INSTRUKCE_LEG_ROZPRAVA, "", "", kontext, SCHEMA_LEG_ROZPRAVA, ucel="legislativa – rozprava")

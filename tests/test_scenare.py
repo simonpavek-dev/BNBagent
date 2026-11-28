@@ -9,12 +9,15 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from agent import config, hodiny, uklidy, znacky
+from nahrazky import FakePsp
+
+from agent import config, hodiny, legislativa, uklidy, znacky
 
 PONDELI = datetime(2026, 11, 2, 9, 0)  # = začátek simulace (conftest.ZACATEK)
 NA_SERVERU = ("PRIJEZDY_AUTOMATICKY", "ZDVORILOSTI_BEZ_MODELU", "OPRAVA_KODU_PO_UKLIDU", "HLASIT_AUTOMATICKE_ODPOVEDI",
               "KONTROLA_KALENDARE", "POCKAT_NA_DALSI_ZPRAVY", "PODPIS_JEN_ZACATEK_A_KONEC", "ZPRAVA_PRED_ODJEZDEM",
-              "PROSBA_O_HODNOCENI", "DOPORUCENI_PODNIKU", "PRIKAZ_STATUS", "TYDENNI_PREHLED")
+              "PROSBA_O_HODNOCENI", "DOPORUCENI_PODNIKU", "PRIKAZ_STATUS", "TYDENNI_PREHLED",
+              "HLIDANI_LEGISLATIVY")
 PODPIS = "Test team\nWhatsApp: +000 000 000 000"  # = hostitel.podpis v conftest.OBECNE
 
 
@@ -30,6 +33,12 @@ def scenar(svet, monkeypatch, request):
     monkeypatch.setattr(config, "UKLIDY_HESLO", "test")
     svet.uklidy_data = []
     monkeypatch.setattr(uklidy, "_stahni", lambda: list(svet.uklidy_data))
+    svet.psp = FakePsp()  # Sněmovna: jeden návrh zákona o krátkodobém ubytování
+    svet.psp.tisk("5001", "106", "Novela z. o cestovním ruchu", "Obce budou moci omezit krátkodobé ubytování.")
+    monkeypatch.setattr(legislativa, "_stahni", svet.psp.stahni)
+    monkeypatch.setattr(legislativa, "_text_pdf", lambda obsah: svet.psp.texty[obsah.decode()])
+    svet.model.odpovedi["legislativa – tisk"] = {"relevantni": True, "temata": ["omezení počtu nocí a regulace obcemi"],
+                                                "shrnuti": "Obce by mohly omezit krátkodobé ubytování.", "dopad": "Limit nocí."}
     svet.rezim = request.param
     return svet
 
@@ -196,7 +205,7 @@ def test_vypadek_smoobu_a_telegramu(scenar):
     do_casu(svet, PONDELI.replace(hour=10, minute=30))
     [eskalace] = [z for z in svet.telegram.zpravy if "POTŘEBUJU TĚ" in z["text"]]
     assert "Zpožděné upozornění" in eskalace["text"]
-    assert [v["ucel"] for v in svet.model.volani] == ["zpráva hosta"]  # zpráva se zpracovala jednou
+    assert [v["ucel"] for v in svet.model.volani if v["ucel"] == "zpráva hosta"] == ["zpráva hosta"]  # jednou
     assert odeslane(svet) == [s_podpisem("Thank you, we will check and get back to you.")]
     zasady(svet, vypadek=True)
 
@@ -287,4 +296,7 @@ def test_tyden_hostitelu_status_a_nedelni_prehled(scenar):
     do_casu(svet, ne.replace(hour=19, minute=30))
     [prehled] = [z for z in svet.telegram.zpravy if "TÝDENNÍ PŘEHLED" in z["text"]]
     assert "Do you have a baby crib?" in prehled["text"] and "Vasile, do Testbytu doplň" in prehled["text"]
+    # Sněmovna: úvodní přehled hned v pondělí, v pondělí příští týden souhrn (tady už neběží)
+    [snemovna] = [z for z in svet.telegram.zpravy if "HLÍDÁNÍ SNĚMOVNY" in z["text"]]
+    assert "Tisk 106" in snemovna["text"]
     zasady(svet)

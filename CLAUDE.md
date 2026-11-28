@@ -21,6 +21,7 @@ Znalostní báze = YAML v `znalostni-baze/` (skutečné byty nejsou v gitu). Tes
 - `znacky.py` – kódy a Wi-Fi v odpovědích hostům: model vidí a píše jen značky, hodnoty dosadí kód; volají `prace`, `navrhy`.
 - `stav_bytu.py` – /status: obsazenost bytů a kódy ke dveřím, zprávu po 15 min smaže (`smaz_prosle`); volá `telegram_ovladani`, `__main__`.
 - `prehled.py` – nedělní přehled: kde Vasil potřeboval hostitele + doporučení, co doplnit (model); volá `__main__`, `telegram_ovladani`.
+- `legislativa.py` – hlídání Sněmovny (otevřená data psp.cz, PDF tisků, stenozáznamy) → „🏛️ SNĚMOVNA“ do skupiny; volá `__main__`.
 - `podpis.py` – podpis jen v první naší zprávě a po skončení pobytu (doplňuje kód, model ne); volají `prace`, `navrhy`, `spravce`, `uklidy`.
 - `odjezdy.py` – zpráva večer před odjezdem (check-out, sleva pro vracející se) a prosba o hodnocení v den odjezdu ze šablony; volá hlavní smyčka.
 - `kody.py` – platný kód keyboxu pro rezervaci (aplikace úklidů / znalostní báze); volají `prace`, `spravce`.

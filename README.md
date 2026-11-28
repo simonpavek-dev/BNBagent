@@ -126,6 +126,14 @@ přišlo a kolik jich Vasil vyřídil sám, kde vás potřeboval (dotaz hosta, p
 co doplnit do znalostní báze, aby to příště zvládl sám – i s hotovou větou „Vasile, do … doplň: …“. Věci, o kterých
 musíte rozhodnout vy (slevy, stížnosti, výjimky), doplnit nedoporučí. Kdykoli na požádání: příkaz `/prehled`.
 
+## Hlídání Sněmovny
+S `HLIDANI_LEGISLATIVY=ano` Vasil hlídá Poslaneckou sněmovnu (otevřená data psp.cz) kvůli všemu, co může omezit krátkodobé
+ubytování: eTurista a evidence hostů, registrace bytů (i nařízení EU 2024/1028), limit nocí a regulace obcemi, kolaudace
+a změna užívání, pravomoci Prahy, poplatek z pobytu, SVJ. Data stahuje v `LEGISLATIVA_HODINY` (7 a 19 h), u každého
+návrhu zákona prohledá jeho plný text (PDF) a stenozáznamy jednání; model shrne jen to, kde se témata opravdu objeví.
+Do skupiny přijde „🏛️ SNĚMOVNA …“: nový návrh, který se vás týká, každý krok projednávání, zařazení na program schůze
+a co zaznělo v rozpravě; v pondělí v `LEGISLATIVA_SOUHRN_HODINA` (8:00) souhrn. Při spuštění přijde přehled stavu k dnešku.
+
 ## Doporučení podniků z Google Maps
 S `DOPORUCENI_PODNIKU=ano` a klíčem `GOOGLE_MAPS_API_KEY` agent na dotaz hosta („kam na večeři?“, „dobrá kavárna
 na zítřek ráno?“) prohledá Google Maps kolem bytu a doporučí až 3 podniky, které:
